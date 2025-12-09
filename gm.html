@@ -1020,7 +1020,7 @@ textarea.form-input {
   const messagesRef = ref(db, `messages/${recipient}`);
   const newMessageRef = push(messagesRef);
   set(newMessageRef, message);
-  alert(`Message sent to ${recipient}!`);
+  alert("Message sent to " + recipient + "!");
   document.getElementById('messageText').value = '';
 }
     }
