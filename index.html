@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MU/TH/UR 6000 - REQUISITION TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  color: #00ff00;
+  font-family: 'Orbitron', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* CRT Effect */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 0, 0.03) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(0, 255, 0, 0.03) 3px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(10px); }
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 255, 0, 0.02);
+  pointer-events: none;
+  z-index: 999;
+  animation: flicker 0.15s infinite alternate;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.95; }
+  100% { opacity: 1; }
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+}
+
+h1 {
+  font-size: 2.5em;
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: 0.9em;
+  letter-spacing: 4px;
+  opacity: 0.8;
+}
+
+.form-section {
+  background: rgba(0, 255, 0, 0.05);
+  border: 2px solid #00ff00;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+  letter-spacing: 2px;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: #000;
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 12px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1em;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+}
+
+button {
+  width: 100%;
+  background: #000;
+  border: 3px solid #00ff00;
+  color: #00ff00;
+  padding: 18px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2em;
+  font-weight: 700;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+}
+
+button:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.log-section {
+  margin-top: 40px;
+}
+
+.log-header {
+  font-size: 1.3em;
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.cursor {
+  display: inline-block;
+  width: 12px;
+  height: 20px;
+  background: #00ff00;
+  margin-left: 10px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.log-entry {
+  background: rgba(0, 255, 0, 0.05);
+  border-left: 4px solid #00ff00;
+  padding: 15px;
+  margin-bottom: 15px;
+  font-size: 0.9em;
+}
+
+.log-timestamp {
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-bottom: 5px;
+}
+
+.log-item {
+  font-weight: 700;
+  margin: 5px 0;
+}
+
+.log-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(0, 255, 0, 0.08);
+  border: 1px solid #00ff00;
+}
+
+.log-stat {
+  font-size: 0.85em;
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.log-stat-label {
+  opacity: 0.6;
+  font-size: 0.8em;
+  display: block;
+  margin-bottom: 3px;
+}
+
+.log-stat-value {
+  font-weight: 700;
+}
+
+.log-notes {
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 3px solid #ff9900;
+  font-style: italic;
+  font-size: 0.85em;
+}
+
+.status-approved {
+  color: #00ff00;
+  text-shadow: 0 0 15px #00ff00;
+}
+
+.status-denied {
+  color: #ff0000;
+  text-shadow: 0 0 15px #ff0000;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.1em;
+  letter-spacing: 3px;
+}
+
+.gear-details {
+  background: rgba(0, 255, 0, 0.08);
+  border: 2px solid #00ff00;
+  padding: 20px;
+  margin: 15px 0;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.gear-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.gear-detail-item {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-left: 3px solid #00ff00;
+}
+
+.gear-detail-label {
+  font-size: 0.75em;
+  opacity: 0.6;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.gear-detail-value {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.gear-detail-notes {
+  grid-column: 1 / -1;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  border-left: 3px solid #ff9900;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.gear-detail-notes-label {
+  color: #ff9900;
+  font-size: 0.75em;
+  opacity: 0.8;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.5em;
+    letter-spacing: 4px;
+  }
+  
+  .subtitle {
+    font-size: 0.7em;
+  }
+  
+  .gear-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>MU/TH/UR 6000</h1>
+    <div class="subtitle">USCSS REQUISITION TERMINAL</div>
+  </header>
+
+  <div class="form-section">
+    <div class="form-group">
+      <label>MARINE CALLSIGN:</label>
+      <input type="text" id="callsign" placeholder="Enter callsign...">
+    </div>
+
+    <div class="form-group">
+      <label>EQUIPMENT REQUEST:</label>
+      <select id="gear">
+        <option value="">Loading gear list...</option>
+      </select>
+    </div>
+
+    <div id="gearDetails" class="gear-details" style="display: none;">
+      <div class="gear-details-grid" id="gearDetailsContent"></div>
+    </div>
+
+    <div class="form-group">
+      <label>JUSTIFICATION (OPTIONAL):</label>
+      <textarea id="justification" placeholder="State operational necessity..."></textarea>
+    </div>
+
+    <button id="submitBtn">SUBMIT REQUEST</button>
+  </div>
+
+  <div class="log-section">
+    <div class="log-header">
+      TERMINAL LOG<span class="cursor"></span>
+    </div>
+    <div id="logContainer"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+  import { getDatabase, ref, push, onValue, set } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+  // Your Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAn3oG0z19XbBqy5nzwhCtsqK64rNDeJQA",
+    authDomain: "muthr6000.firebaseapp.com",
+    databaseURL: "https://muthr6000-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "muthr6000",
+    storageBucket: "muthr6000.firebasestorage.app",
+    messagingSenderId: "483667325658",
+    appId: "1:483667325658:web:e79eef575c1586cc456be3",
+    measurementId: "G-F4LZB5JF9T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Sound effects using Web Audio API
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  
+  function playBeep(frequency = 800, duration = 50) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = 'square';
+    
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration / 1000);
+  }
+  
+  function playKeypress() {
+    playBeep(1200 + Math.random() * 400, 30);
+  }
+  
+  function playSuccess() {
+    playBeep(600, 50);
+    setTimeout(() => playBeep(800, 50), 80);
+    setTimeout(() => playBeep(1000, 100), 160);
+  }
+  
+  function playError() {
+    playBeep(300, 100);
+    setTimeout(() => playBeep(250, 100), 120);
+  }
+  
+  function playSelect() {
+    playBeep(1000, 40);
+  }
+  
+  function playAlert() {
+    playBeep(800, 100);
+    setTimeout(() => playBeep(600, 100), 150);
+  }
+
+  // Add typing sounds to all inputs
+  const allInputs = document.querySelectorAll('input[type="text"], textarea');
+  allInputs.forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key.length === 1 || e.key === 'Backspace') {
+        playKeypress();
+      }
+    });
+  });
+  
+  // Add sound to dropdown
+  document.getElementById('gear').addEventListener('change', () => {
+    playSelect();
+  });
+  
+  // Add sound to button hover
+  document.getElementById('submitBtn').addEventListener('mouseenter', () => {
+    playBeep(900, 30);
+  });
+
+  // Load saved callsign
+  const callsignInput = document.getElementById('callsign');
+  const savedCallsign = localStorage.getItem('muthr_callsign');
+  if (savedCallsign) {
+    callsignInput.value = savedCallsign;
+  }
+
+  // Save callsign on change
+  callsignInput.addEventListener('change', () => {
+    localStorage.setItem('muthr_callsign', callsignInput.value);
+  });
+
+  // Listen for gear list updates
+  const gearSelect = document.getElementById('gear');
+  const gearDetailsDiv = document.getElementById('gearDetails');
+  const gearDetailsContent = document.getElementById('gearDetailsContent');
+  let gearData = [];
+  
+  onValue(ref(db, 'gear'), (snapshot) => {
+    gearData = snapshot.val() || [];
+    gearSelect.innerHTML = '<option value="">-- SELECT EQUIPMENT --</option>';
+    gearData.forEach((item, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      const name = typeof item === 'object' ? item.name : item;
+      option.textContent = name;
+      gearSelect.appendChild(option);
+    });
+  });
+
+  // Show gear details when selected
+  gearSelect.addEventListener('change', () => {
+    const selectedIndex = gearSelect.value;
+    
+    if (!selectedIndex) {
+      gearDetailsDiv.style.display = 'none';
+      return;
+    }
+    
+    const item = gearData[selectedIndex];
+    const isObject = typeof item === 'object';
+    
+    if (!isObject || (!item.bonus && !item.damage && !item.range && !item.weight && !item.cost && !item.notes)) {
+      gearDetailsDiv.style.display = 'none';
+      return;
+    }
+    
+    let detailsHTML = '';
+    
+    if (item.bonus) {
+      detailsHTML += `
+        <div class="gear-detail-item">
+          <div class="gear-detail-label">BONUS</div>
+          <div class="gear-detail-value">${item.bonus}</div>
+        </div>
+      `;
+    }
+    
+    if (item.damage) {
+      detailsHTML += `
+        <div class="gear-detail-item">
+          <div class="gear-detail-label">DAMAGE</div>
+          <div class="gear-detail-value">${item.damage}</div>
+        </div>
+      `;
+    }
+    
+    if (item.range) {
+      detailsHTML += `
+        <div class="gear-detail-item">
+          <div class="gear-detail-label">RANGE</div>
+          <div class="gear-detail-value">${item.range}</div>
+        </div>
+      `;
+    }
+    
+    if (item.weight) {
+      detailsHTML += `
+        <div class="gear-detail-item">
+          <div class="gear-detail-label">WEIGHT</div>
+          <div class="gear-detail-value">${item.weight}</div>
+        </div>
+      `;
+    }
+    
+    if (item.cost) {
+      detailsHTML += `
+        <div class="gear-detail-item">
+          <div class="gear-detail-label">COST</div>
+          <div class="gear-detail-value">${item.cost}</div>
+        </div>
+      `;
+    }
+    
+    if (item.notes) {
+      detailsHTML += `
+        <div class="gear-detail-notes">
+          <div class="gear-detail-notes-label">NOTES</div>
+          <div>${item.notes}</div>
+        </div>
+      `;
+    }
+    
+    gearDetailsContent.innerHTML = detailsHTML;
+    gearDetailsDiv.style.display = 'block';
+  });
+
+  // Submit request
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    const callsign = callsignInput.value.trim();
+    const selectedIndex = gearSelect.value;
+    const justification = document.getElementById('justification').value.trim();
+
+    if (!callsign || !selectedIndex) {
+      playError();
+      speak('REQUEST INCOMPLETE. CALLSIGN AND EQUIPMENT REQUIRED.');
+      return;
+    }
+
+    const selectedGear = gearData[selectedIndex];
+    const gearName = typeof selectedGear === 'object' ? selectedGear.name : selectedGear;
+    
+    // Store full gear data in request for approved items to show stats
+    const gearStats = typeof selectedGear === 'object' ? {
+      bonus: selectedGear.bonus || '',
+      damage: selectedGear.damage || '',
+      range: selectedGear.range || '',
+      weight: selectedGear.weight || '',
+      cost: selectedGear.cost || '',
+      notes: selectedGear.notes || ''
+    } : null;
+
+    const request = {
+      callsign,
+      gear: gearName,
+      gearStats: gearStats,
+      justification,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+
+    push(ref(db, 'requests'), request);
+    playSuccess();
+    speak('REQUEST TRANSMITTED TO MOTHER COMMAND PROTOCOL.');
+    
+    // Clear form
+    gearSelect.value = '';
+    document.getElementById('justification').value = '';
+    document.getElementById('gearDetails').style.display = 'none';
+  });
+
+  // Listen for decisions
+  const logContainer = document.getElementById('logContainer');
+  onValue(ref(db, 'requests'), (snapshot) => {
+    const requests = snapshot.val();
+    if (!requests) return;
+
+    const entries = Object.values(requests)
+      .filter(r => r.status !== 'pending')
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 20);
+
+    logContainer.innerHTML = '';
+    entries.forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      
+      const timestamp = new Date(entry.timestamp).toLocaleString();
+      const statusClass = entry.status === 'approved' ? 'status-approved' : 'status-denied';
+      const statusText = entry.status === 'approved' ? 'APPROVED' : 'DENIED';
+      
+      // Build stats HTML only for approved items
+      let statsHTML = '';
+      if (entry.status === 'approved' && entry.gearStats) {
+        const stats = entry.gearStats;
+        let hasStats = stats.bonus || stats.damage || stats.range || stats.weight || stats.cost;
+        
+        if (hasStats) {
+          statsHTML = '<div class="log-stats">';
+          if (stats.bonus) statsHTML += `<div class="log-stat"><span class="log-stat-label">BONUS</span><span class="log-stat-value">${stats.bonus}</span></div>`;
+          if (stats.damage) statsHTML += `<div class="log-stat"><span class="log-stat-label">DAMAGE</span><span class="log-stat-value">${stats.damage}</span></div>`;
+          if (stats.range) statsHTML += `<div class="log-stat"><span class="log-stat-label">RANGE</span><span class="log-stat-value">${stats.range}</span></div>`;
+          if (stats.weight) statsHTML += `<div class="log-stat"><span class="log-stat-label">WEIGHT</span><span class="log-stat-value">${stats.weight}</span></div>`;
+          if (stats.cost) statsHTML += `<div class="log-stat"><span class="log-stat-label">COST</span><span class="log-stat-value">${stats.cost}</span></div>`;
+          statsHTML += '</div>';
+        }
+        
+        if (stats.notes) {
+          statsHTML += `<div class="log-notes">${stats.notes}</div>`;
+        }
+      }
+      
+      div.innerHTML = `
+        <div class="log-timestamp">${timestamp}</div>
+        <div class="log-item">CALLSIGN: ${entry.callsign}</div>
+        <div class="log-item">ITEM: ${entry.gear}</div>
+        ${statsHTML}
+        <div class="log-item ${statusClass}">STATUS: ${statusText}</div>
+      `;
+      
+      logContainer.appendChild(div);
+    });
+  });
+
+  // Voice synthesis
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      // Replace "MU THEE UR" with "Mother"
+      text = text.replace(/MU THEE UR/gi, 'Mother');
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = speechSynthesis.getVoices();
+      
+      // Try to find best female voice (prioritize UK/US female voices)
+      const femaleVoice = voices.find(v => 
+        v.name.includes('Google UK English Female') ||
+        v.name.includes('Microsoft Zira') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Female') ||
+        v.name.includes('female') ||
+        v.name.includes('woman') ||
+        v.name.includes('Woman')
+      );
+      
+      if (femaleVoice) utterance.voice = femaleVoice;
+      utterance.rate = 0.85;  // Slightly slower
+      utterance.pitch = 1.1;  // Higher pitch for more feminine
+      speechSynthesis.speak(utterance);
+    }
+  }
+
+  // Listen for status changes to speak results
+  let lastSpoken = {};
+  onValue(ref(db, 'requests'), (snapshot) => {
+    const requests = snapshot.val();
+    if (!requests) return;
+
+    Object.entries(requests).forEach(([id, request]) => {
+      if (request.status !== 'pending' && lastSpoken[id] !== request.status) {
+        lastSpoken[id] = request.status;
+        
+        if (request.status === 'approved') {
+          playSuccess();
+        } else {
+          playError();
+        }
+        
+        const message = request.status === 'approved' 
+          ? `Requisition approved. ${request.gear}. Authorization granted.`
+          : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
+        speak(message);
+      }
+    });
+  });
+
+  // Load voices
+  if ('speechSynthesis' in window) {
+    speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.getVoices();
+    };
+  }
+</script>
+
+</body>
+</html>
