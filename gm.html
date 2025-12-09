@@ -1016,12 +1016,13 @@ textarea.form-input {
         document.getElementById('messageText').value = '';
       }, { onlyOnce: true });
     } else {
-      // Send to specific user
-      const messagesRef = ref(db, `messages/${recipient}`);
-      const newMessageRef = push(messagesRef);
-      set(newMessageRef, message);
-      alert(`Message sent to ${recipient}!`);
-      document.getElementById('messageText').value = '';
+  // Send to specific user
+  const messagesRef = ref(db, `messages/${recipient}`);
+  const newMessageRef = push(messagesRef);
+  set(newMessageRef, message);
+  alert(`Message sent to ${recipient}!`);
+  document.getElementById('messageText').value = '';
+}
     }
   });
   // Clear terminal log
