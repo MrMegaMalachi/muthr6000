@@ -580,7 +580,9 @@ textarea.form-input {
       <div class="no-requests">NO PENDING REQUESTS</div>
     </div>
   </div>
-
+  
+<button class="btn-small btn-delete" style="width: 100%; margin-top: 15px;" onclick="clearTerminalLog()">CLEAR TERMINAL LOG</button>
+  
   <div class="section funds-management">
     <div class="section-title">💰 PERSONNEL FUNDS MANAGEMENT</div>
     <div id="usersContainer">
@@ -603,7 +605,9 @@ textarea.form-input {
     <button class="btn-send-message" id="sendMessageBtn">SEND MESSAGE</button>
   </div>
 </div>
-
+  
+<button class="btn-small btn-delete" style="width: 100%; margin-top: 15px;" onclick="clearAllMessages()">CLEAR ALL TRANSMISSIONS</button>
+  
 <!-- Edit Modal -->
 <div class="modal" id="editModal">
   <div class="modal-content">
@@ -1020,6 +1024,18 @@ textarea.form-input {
       document.getElementById('messageText').value = '';
     }
   });
+  // Clear terminal log
+window.clearTerminalLog = function() {
+  if (!confirm('Clear all terminal log entries? This cannot be undone.')) return;
+  set(ref(db, 'requests'), null);
+};
+
+// Clear all messages
+window.clearAllMessages = function() {
+  if (!confirm('Clear all player messages? This cannot be undone.')) return;
+  set(ref(db, 'messages'), null);
+};
+  
 </script>
 
 </body>
