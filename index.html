@@ -648,7 +648,13 @@ button:active {
     </div>
     <div id="logContainer"></div>
   </div>
-
+  <!-- PERSONAL INVENTORY -->
+  <div id="inventorySection" style="display:none; margin-top:40px; background:rgba(0,255,255,0.05); border:2px solid #00ffff; padding:25px; box-shadow:inset 0 0 20px rgba(0,255,255,0.1);">
+    <div style="font-size:1.3em; margin-bottom:15px; letter-spacing:3px; color:#00ffff; display:flex; align-items:center;">
+      PERSONAL INVENTORY<span style="display:inline-block; width:12px; height:20px; background:#00ffff; margin-left:10px; animation:blink 1s infinite;"></span>
+    </div>
+    <div id="inventoryContainer"></div>
+  </div>
   <div id="messagesSection" class="log-section" style="display: none;">
     <div class="log-header">
       INCOMING TRANSMISSIONS<span class="cursor"></span>
@@ -659,7 +665,7 @@ button:active {
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off, get } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -806,6 +812,7 @@ button:active {
       loadUserFunds(callsign);
       loadMessages(callsign);
       loadObjectives();
+      loadInventory(callsign);
     }, { onlyOnce: true });
   });
 
@@ -887,6 +894,7 @@ function loadMessages(callsign) {
   
 // Load objectives
 let announcedObjectives = new Set();
+let currentInventory = [];
 
 function loadObjectives() {
   const objectivesSection = document.getElementById('objectivesSection');
@@ -958,6 +966,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   document.getElementById('fundsDisplay').style.display = 'none';
   document.getElementById('messagesSection').style.display = 'none';
   document.getElementById('objectivesSection').style.display = 'none';
+  document.getElementById('inventorySection').style.display = 'none';
   document.getElementById('loginCallsign').value = '';
   document.getElementById('loginFunds').value = '';
 });
@@ -1263,6 +1272,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
             updateFundsDisplay();
           }
           playSuccess();
+          speak(`Item delivered. ${request.gear} added to your personal inventory.`);
         } else {
           playError();
         }
@@ -1287,6 +1297,65 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   } else {
     voicesLoadedResolve(); // Resolve immediately if no speech synthesis
   }
+    // PERSONAL INVENTORY SYSTEM
+  function loadInventory(callsign) {
+    const section = document.getElementById('inventorySection');
+    const container = document.getElementById('inventoryContainer');
+    onValue(ref(db, `users/${callsign}/inventory`), (snap) => {
+      const data = snap.val();
+      if (!data || data.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+      section.style.display = 'block';
+      container.innerHTML = '';
+      data.sort((a,b) => b.timestamp - a.timestamp).forEach(item => {
+        let stats = '';
+        if (item.gearStats) {
+          const s = item.gearStats;
+          if (s.bonus || s.damage || s.range || s.weight || s.cost) {
+            stats = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0;padding:10px;background:rgba(0,255,255,0.08);border:1px solid #00ffff;">';
+            if (s.bonus) stats += `<div style="background:rgba(0,0,0,0.4);padding:5px;"><small style="opacity:0.6;">BONUS</small><br><strong>${s.bonus}</strong></div>`;
+            if (s.damage) stats += `<div style="background:rgba(0,0,0,0.4);padding:5px;"><small style="opacity:0.6;">DAMAGE</small><br><strong>${s.damage}</strong></div>`;
+            if (s.range) stats += `<div style="background:rgba(0,0,0,0.4);padding:5px;"><small style="opacity:0.6;">RANGE</small><br><strong>${s.range}</strong></div>`;
+            if (s.weight) stats += `<div style="background:rgba(0,0,0,0.4);padding:5px;"><small style="opacity:0.6;">WEIGHT</small><br><strong>${s.weight}</strong></div>`;
+            if (s.cost) stats += `<div style="background:rgba(0,0,0,0.4);padding:5px;"><small style="opacity:0.6;">COST</small><br><strong>${s.cost}</strong></div>`;
+            stats += '</div>';
+          }
+          if (s.notes) stats += `<div style="margin:10px 0;padding:10px;background:rgba(0,0,0,0.4);border-left:3px solid #ff9900;font-style:italic;">${s.notes}</div>`;
+        }
+        container.innerHTML += `
+          <div style="background:rgba(0,255,255,0.1);border:2px solid #00ffff;padding:20px;margin-bottom:15px;box-shadow:0 0 15px rgba(0,255,255,0.3);">
+            <div style="font-size:1.2em;font-weight:700;color:#00ffff;letter-spacing:2px;text-shadow:0 0 10px #00ffff;">${item.gear}</div>
+            ${stats}
+            <div style="font-size:0.75em;opacity:0.6;margin-top:10px;color:#00ffff;">
+              ACQUIRED: ${new Date(item.timestamp).toLocaleString()}
+            </div>
+          </div>
+        `;
+      });
+    });
+  }
+
+  async function addToInventory(callsign, item) {
+    const invRef = ref(db, `users/${callsign}/inventory`);
+    const snap = await get(invRef);
+    const current = snap.val() || [];
+    current.push(item);
+    set(invRef, current);
+  }
+
+  // Automatically add approved gear to inventory
+  onValue(ref(db, 'requests'), (snapshot) => {
+    const requests = snapshot.val() || {};
+    Object.entries(requests).forEach(([id, request]) => {
+      if (request.status === 'approved' && request.callsign === currentUser && !request.addedToInventory) {
+        const newItem = { gear: request.gear, gearStats: request.gearStats || null, timestamp: request.timestamp };
+        addToInventory(currentUser, newItem);
+        update(ref(db, `requests/${id}`), { addedToInventory: true });
+      }
+    });
+  });
 </script>
 
 </body>
