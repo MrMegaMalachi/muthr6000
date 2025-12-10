@@ -619,6 +619,40 @@ textarea.form-input {
     width: 100%;
   }
 }
+/* --- TOGGLE FEATURE STYLES --- */
+  
+  /* Make the title look clickable */
+  .section-title {
+    cursor: pointer;
+    position: relative;
+    user-select: none; /* Prevents highlighting text when clicking fast */
+    transition: color 0.2s;
+  }
+
+  /* Add a hover effect */
+  .section-title:hover {
+    color: #fff;
+    text-shadow: 0 0 15px #00ff00;
+  }
+
+  /* The [+] and [-] indicator logic */
+  .section-title::after {
+    content: "[ - ]"; /* Default state (Expanded) */
+    float: right;
+    font-size: 0.8em;
+    opacity: 0.7;
+  }
+
+  /* When the section has the class 'collapsed', change the icon */
+  .section.collapsed .section-title::after {
+    content: "[ + ]";
+    color: #ff9900;
+  }
+
+  /* THE MAGIC: Hide everything inside a collapsed section EXCEPT the title */
+  .section.collapsed > *:not(.section-title) {
+    display: none !important;
+  }
 </style>
 </head>
 <body>
@@ -1380,6 +1414,33 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
     }
 } 
 </script>
+  
+<script>
+  // Wait for the page to fully load
+  document.addEventListener('DOMContentLoaded', function() {
+    
+    // 1. Select all elements that are section titles
+    const titles = document.querySelectorAll('.section .section-title');
 
+    // 2. Loop through each title and add a click listener
+    titles.forEach(title => {
+      title.addEventListener('click', function() {
+        
+        // Find the parent container (the .section div)
+        const parentSection = this.parentElement;
+
+        // Only toggle if the parent is actually a main section
+        // (This prevents issues with nested titles inside the Objectives area)
+        if (parentSection.classList.contains('section')) {
+          parentSection.classList.toggle('collapsed');
+        }
+      });
+    });
+
+    // Optional: Start with the "Add Gear" and "Objectives" sections collapsed by default?
+    // Uncomment the line below if you want the Gear Editor closed on load:
+    // document.querySelector('.gear-editor').classList.add('collapsed');
+  });
+</script>
 </body>
 </html>
