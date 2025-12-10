@@ -861,7 +861,6 @@ async function uploadImageFree(file) {
       const weight = isObject ? item.weight : '';
       const cost = isObject ? item.cost : '';
       const notes = isObject ? item.notes : '';
-      const imageUrl = isObject ? (item.imageUrl || null) : null;
       
       let statsHTML = '';
       if (bonus || damage || range || weight || cost) {
@@ -878,25 +877,20 @@ async function uploadImageFree(file) {
       if (notes) {
         notesHTML = `<div class="gear-notes">${notes}</div>`;
       }
-
-      let imageHTML = '';
-      if (imageUrl) {
-        imageHTML = `<img src="${imageUrl}" style="max-width:100%; margin-top:15px; border:2px solid #00ff00; box-shadow:0 0 20px #00ff00; border-radius:8px;">`;
-      }
+      
       div.innerHTML = `
         <div class="gear-item-header">
           <div class="gear-item-name">${name}</div>
         </div>
-              ${statsHTML}
+        ${statsHTML}
         ${notesHTML}
-        ${imageHTML}
         <div class="gear-controls">
-          <button class="btn-small btn-up" data-index="${index}">Up</button>
-          <button class="btn-small btn-down" data-index="${index}">Down</button>
+          <button class="btn-small btn-up" data-index="${index}">▲</button>
+          <button class="btn-small btn-down" data-index="${index}">▼</button>
           <button class="btn-small btn-edit" data-index="${index}">EDIT</button>
           <button class="btn-small btn-delete" data-index="${index}">DELETE</button>
         </div>
-       
+      `;
       gearListContainer.appendChild(div);
     });
 
