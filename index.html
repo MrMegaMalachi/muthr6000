@@ -1273,6 +1273,14 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
           }
           playSuccess();
           speak(`Item delivered. ${request.gear} added to your personal inventory.`);
+
+          // ADD TO INVENTORY HERE
+          const newItem = {
+            gear: request.gear,
+            gearStats: request.gearStats || null,
+            timestamp: request.timestamp
+          };
+          addToInventory(currentUser, newItem);
         } else {
           playError();
         }
@@ -1345,17 +1353,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     set(invRef, current);
   }
 
-  // Automatically add approved gear to inventory
-  onValue(ref(db, 'requests'), (snapshot) => {
-    const requests = snapshot.val() || {};
-    Object.entries(requests).forEach(([id, request]) => {
-      if (request.status === 'approved' && request.callsign === currentUser && !request.addedToInventory) {
-        const newItem = { gear: request.gear, gearStats: request.gearStats || null, timestamp: request.timestamp };
-        addToInventory(currentUser, newItem);
-        update(ref(db, `requests/${id}`), { addedToInventory: true });
-      }
-    });
-  });
 </script>
 
 </body>
