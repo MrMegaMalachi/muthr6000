@@ -614,12 +614,13 @@ button:active {
         </select>
       </div>
 
-      <div id="gearDetails" class="gear-details" style="display: none;">
-        <div class="gear-details-grid" id="gearDetailsContent"></div>
-        <div id="affordabilityWarning" class="affordability-warning" style="display: none;">
-          ⚠ WARNING: INSUFFICIENT FUNDS - PROCEEDING WILL RESULT IN DEBT
-        </div>
-      </div>
+   <div id="gearDetails" class="gear-details" style="display: none;">
+  <div class="gear-details-grid" id="gearDetailsContent"></div>
+
+  <div id="gearImageBox" style="margin:20px 0; text-align:center; display:none;">
+    <img id="gearImage" style="max-width:100%; max-height:450px; border:3px solid #00ff00; box-shadow:0 0 30px #00ff00;">
+  </div>
+</div>
 
       <div class="form-group">
         <label>JUSTIFICATION (OPTIONAL):</label>
@@ -1049,6 +1050,16 @@ button:active {
     
     gearDetailsContent.innerHTML = detailsHTML;
     gearDetailsDiv.style.display = 'block';
+        // SHOW IMAGE IF IT EXISTS
+    const imageUrl = typeof item === 'object' ? item.imageUrl : null;
+    const box = document.getElementById('gearImageBox');
+    const img = document.getElementById('gearImage');
+    if (imageUrl) {
+      img.src = imageUrl;
+      box.style.display = 'block';
+    } else {
+      box.style.display = 'none';
+    }
     
     // Check affordability
     const warningDiv = document.getElementById('affordabilityWarning');
