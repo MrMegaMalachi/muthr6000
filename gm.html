@@ -836,22 +836,21 @@ async function uploadImageFree(file) {
 
   let currentEditIndex = null;
   let currentGearArray = [];
-
   // Render gear list
   function renderGearList() {
     const gearListContainer = document.getElementById('gearList');
-    
+   
     if (!currentGearArray || currentGearArray.length === 0) {
       gearListContainer.innerHTML = '<div class="no-requests">NO EQUIPMENT IN DATABASE</div>';
       return;
     }
-    
+   
     gearListContainer.innerHTML = '';
-    
+   
     currentGearArray.forEach((item, index) => {
       const div = document.createElement('div');
       div.className = 'gear-item';
-      
+
       // Handle both old string format and new object format
       const isObject = typeof item === 'object';
       const name = isObject ? item.name : item;
@@ -861,7 +860,9 @@ async function uploadImageFree(file) {
       const weight = isObject ? item.weight : '';
       const cost = isObject ? item.cost : '';
       const notes = isObject ? item.notes : '';
-      
+      const imageUrl = isObject ? (item.imageUrl || null) : null;
+
+      // Build stats HTML
       let statsHTML = '';
       if (bonus || damage || range || weight || cost) {
         statsHTML = '<div class="gear-item-stats">';
@@ -872,28 +873,52 @@ async function uploadImageFree(file) {
         if (cost) statsHTML += `<div class="gear-stat"><span class="gear-stat-label">COST:</span>${cost}</div>`;
         statsHTML += '</div>';
       }
-      
+
+      // Build notes HTML
       let notesHTML = '';
       if (notes) {
         notesHTML = `<div class="gear-notes">${notes}</div>`;
       }
-      
+
+      // Build image HTML
+      let imageHTML = '';
+      if (imageUrl) {
+        imageHTML = `<img src="${imageUrl}" style="max-width:100%; margin-top:15px; border:2px solid #00ff00; box-shadow:0 0 20px #00ff00; border-radius:8px;">`;
+      }
+
+      // Final card
       div.innerHTML = `
         <div class="gear-item-header">
           <div class="gear-item-name">${name}</div>
         </div>
         ${statsHTML}
         ${notesHTML}
+        ${imageHTML}
         <div class="gear-controls">
-          <button class="btn-small btn-up" data-index="${index}">▲</button>
-          <button class="btn-small btn-down" data-index="${index}">▼</button>
+          <button class="btn-small btn-up" data-index="${index}">Up</button>
+          <button class="btn-small btn-down" data-index="${index}">Down</button>
           <button class="btn-small btn-edit" data-index="${index}">EDIT</button>
           <button class="btn-small btn-delete" data-index="${index}">DELETE</button>
         </div>
       `;
+
       gearListContainer.appendChild(div);
     });
 
+    // Buttons
+    document.querySelectorAll('.btn-up').forEach(btn => {
+      btn.addEventListener('click', () => moveGear(parseInt(btn.dataset.index), -1));
+    });
+    document.querySelectorAll('.btn-down').forEach(btn => {
+      btn.addEventListener('click', () => moveGear(parseInt(btn.dataset.index), 1));
+    });
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+      btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.index)));
+    });
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.addEventListener('click', () => deleteGear(parseInt(btn.dataset.index)));
+    });
+  }
     // Add event listeners
     document.querySelectorAll('.btn-up').forEach(btn => {
       btn.addEventListener('click', () => moveGear(parseInt(btn.dataset.index), -1));
