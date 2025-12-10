@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -122,6 +123,11 @@ input, select, textarea {
   font-family: 'Orbitron', monospace;
   font-size: 1em;
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -377,12 +383,6 @@ button:active {
   text-shadow: 0 0 15px #ff0000;
 }
 
-/* Style for pending requests in the log */
-.status-pending {
-  color: #ffff00;
-  text-shadow: 0 0 10px #ffff00;
-}
-
 .loading {
   text-align: center;
   padding: 20px;
@@ -543,89 +543,6 @@ button:active {
   color: #ff00ff;
 }
 
-/* Inventory Styles */
-.inventory-section {
-    margin-top: 40px;
-    padding: 25px;
-    background: rgba(0, 255, 0, 0.05);
-    border: 2px solid #00ff00;
-    box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
-}
-
-.inventory-header {
-    font-size: 1.3em;
-    margin-bottom: 15px;
-    letter-spacing: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: #00ff00;
-}
-
-.btn-toggle-inventory {
-    width: auto;
-    padding: 8px 15px;
-    font-size: 0.8em;
-    letter-spacing: 2px;
-    border: 2px solid #00ff00;
-    background: #000;
-}
-
-.inventory-card {
-    background: rgba(0, 255, 0, 0.15);
-    border-left: 5px solid #00ff00;
-    padding: 15px;
-    margin-bottom: 10px;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-    position: relative; /* For button positioning */
-}
-
-.inventory-title {
-    font-size: 1.1em;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-bottom: 5px;
-}
-
-.inventory-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 5px;
-    margin-top: 8px;
-    padding-top: 5px;
-    border-top: 1px solid rgba(0, 255, 0, 0.2);
-}
-
-.inventory-stat {
-    font-size: 0.8em;
-    padding: 3px;
-}
-
-.inventory-stat-label {
-    opacity: 0.6;
-    display: block;
-}
-
-/* NEW: Inventory Remove Button Style */
-.btn-remove-inventory {
-    width: auto;
-    background: #000;
-    border: 1px solid #ff0000;
-    color: #ff0000;
-    padding: 5px 10px;
-    font-size: 0.7em;
-    margin-top: 10px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    float: right; 
-    transition: all 0.3s;
-}
-
-.btn-remove-inventory:hover {
-    background: rgba(255, 0, 0, 0.2);
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-}
-
 @media (max-width: 600px) {
   h1 {
     font-size: 1.5em;
@@ -675,21 +592,9 @@ button:active {
   </div>
 
   <div id="requisitionSection" style="display: none;">
-    
-    <div id="inventorySection" class="inventory-section">
-        <div class="inventory-header">
-            逃 CURRENT INVENTORY
-            <button id="toggleInventoryBtn" class="btn-toggle-inventory">TOGGLE VIEW</button>
-        </div>
-        <div id="inventoryContainer" style="display: none;">
-            <div id="noInventoryMsg" style="text-align: center; opacity: 0.5; padding: 20px;">
-                INVENTORY EMPTY. SUBMIT REQUISITIONS.
-            </div>
-        </div>
-    </div>
     <div id="objectivesSection" class="objectives-section" style="display: none;">
       <div class="objectives-header">
-        識 MISSION OBJECTIVES<span class="cursor"></span>
+        🎯 MISSION OBJECTIVES<span class="cursor"></span>
       </div>
       <div id="objectivesContainer"></div>
     </div>
@@ -717,10 +622,6 @@ button:active {
     <img id="gearImage" style="max-width:100%; max-height:450px; border:3px solid #00ff00; box-shadow:0 0 30px #00ff00;">
   </div>
 </div>
-    
-      <div id="affordabilityWarning" class="affordability-warning" style="display: none;">
-          圷 WARNING: INSUFFICIENT FUNDS. DEBT WILL BE INCURRED UPON APPROVAL. 圷
-      </div>
 
       <div class="form-group">
         <label>JUSTIFICATION (OPTIONAL):</label>
@@ -757,7 +658,7 @@ button:active {
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -779,7 +680,6 @@ button:active {
   let selectedGearCost = 0;
   let messagesListenerActive = false;
   let messagesUnsubscribe = null; 
-  let inventoryUnsubscribe = null; // FIX 1: Listener tracker for inventory
   let voicesLoadedResolve;
   const voicesLoaded = new Promise((resolve) => { voicesLoadedResolve = resolve; });
   
@@ -864,92 +764,6 @@ button:active {
     set(ref(db, `users/${callsign}/funds`), funds);
   }
 
-  // NEW FUNCTION: Load and display user inventory
-function loadInventory(callsign) {
-    const container = document.getElementById('inventoryContainer');
-    const noInventoryMsg = document.getElementById('noInventoryMsg');
-    
-    // FIX 2: Capture the unsubscribe function to stop the listener on logout
-    if (inventoryUnsubscribe) {
-      inventoryUnsubscribe(); // Unsubscribe the previous user's listener if it somehow wasn't closed
-    }
-    
-    inventoryUnsubscribe = onValue(ref(db, `users/${callsign}/inventory`), (snapshot) => {
-        const inventory = snapshot.val();
-        container.innerHTML = '';
-
-        if (!inventory || Object.keys(inventory).length === 0) {
-            noInventoryMsg.style.display = 'block';
-            return;
-        }
-
-        noInventoryMsg.style.display = 'none';
-        
-        // Use Object.entries to get the Firebase key (requestId) and the item data
-        const inventoryEntries = Object.entries(inventory);
-        
-        // Sort by timestamp (newest first)
-        const sortedInventory = inventoryEntries.sort(([, a], [, b]) => b.approvedTimestamp - a.approvedTimestamp);
-
-        sortedInventory.forEach(([requestId, item]) => { // Now we have the requestId and the item data
-            const div = document.createElement('div');
-            div.className = 'inventory-card';
-            
-            // Build stats HTML
-            let statsHTML = '';
-            // Note: Inventory stores the full gearStats object under 'stats' key
-            if (item.stats) {
-                const stats = item.stats;
-                statsHTML += '<div class="inventory-stats">';
-                
-                if (stats.bonus) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">BONUS</span>${stats.bonus}</div>`;
-                if (stats.damage) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">DMG</span>${stats.damage}</div>`;
-                if (stats.range) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">RANGE</span>${stats.range}</div>`;
-                if (stats.weight) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">WEIGHT</span>${stats.weight}</div>`;
-                if (stats.cost) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">COST</span>${stats.cost}</div>`;
-
-                statsHTML += '</div>';
-            }
-            
-            div.innerHTML = `
-                <div class="inventory-title">${item.gear}</div>
-                ${statsHTML}
-                <button class="btn-remove-inventory" onclick="removeItemFromInventory('${requestId}')">JETTISON ITEM</button>
-                <div style="clear: both;"></div>
-            `;
-            
-            container.appendChild(div);
-        });
-    });
-}
-
-// NEW FUNCTION: Handles the removal of an item from the player's personal inventory
-window.removeItemFromInventory = function(requestId) {
-    if (!currentUser) {
-        speak('ERROR: NO USER LOGGED IN.');
-        playError();
-        return;
-    }
-    
-    if (!confirm("CONFIRM: Are you sure you want to jettison this item from your inventory? This cannot be undone.")) {
-        playSelect();
-        return;
-    }
-    
-    // Use Firebase remove() function targeting the specific path in the user's inventory
-    remove(ref(db, `users/${currentUser}/inventory/${requestId}`))
-        .then(() => {
-            playSuccess();
-            speak('INVENTORY ITEM REMOVED. ITEM JETTISONED.');
-        })
-        .catch((error) => {
-            playError();
-            speak('ERROR REMOVING ITEM FROM INVENTORY.');
-            console.error("Firebase removal error:", error);
-        });
-}
-
-
   // Login
   document.getElementById('loginBtn').addEventListener('click', () => {
     const callsign = document.getElementById('loginCallsign').value.trim();
@@ -991,25 +805,8 @@ window.removeItemFromInventory = function(requestId) {
       loadUserFunds(callsign);
       loadMessages(callsign);
       loadObjectives();
-      // Load inventory on login
-      loadInventory(callsign);
     }, { onlyOnce: true });
   });
-
-  // Inventory Toggle Button
-document.getElementById('toggleInventoryBtn').addEventListener('click', () => {
-    playSelect();
-    const container = document.getElementById('inventoryContainer');
-    const button = document.getElementById('toggleInventoryBtn');
-    if (container.style.display === 'none') {
-        container.style.display = 'block';
-        button.textContent = 'TOGGLE VIEW (HIDE)';
-    } else {
-        container.style.display = 'none';
-        button.textContent = 'TOGGLE VIEW';
-    }
-});
-
 
   // Listen for messages
 function loadMessages(callsign) {
@@ -1054,7 +851,7 @@ function loadMessages(callsign) {
       const timestamp = new Date(message.timestamp).toLocaleString();
       
       div.innerHTML = `
-        <div class="message-header">笆ｸ TRANSMISSION FROM MU/TH/UR 6000</div>
+        <div class="message-header">▸ TRANSMISSION FROM MU/TH/UR 6000</div>
         <div class="message-timestamp">${timestamp}</div>
         <div class="message-text">${message.text}</div>
       `;
@@ -1150,12 +947,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     messagesUnsubscribe = null;
   }
   
-  // FIX 3: Turn off the inventory listener
-  if (inventoryUnsubscribe) {
-    inventoryUnsubscribe();
-    inventoryUnsubscribe = null;
-  }
-
   // Reset the flag so we can create a new listener on next login
   messagesListenerActive = false;
   
@@ -1276,14 +1067,10 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     }
     
     if (item.cost) {
-      // Logic to color the cost based on affordability
-      const isAffordable = currentFunds >= selectedGearCost;
-      const costClass = isAffordable ? 'status-approved' : 'status-denied';
-
       detailsHTML += `
         <div class="gear-detail-item">
-          <div class="gear-detail-label">COST & FUND STATUS</div>
-          <div class="gear-detail-value ${costClass}">${item.cost}</div>
+          <div class="gear-detail-label">COST</div>
+          <div class="gear-detail-value">${item.cost}</div>
         </div>
       `;
     }
@@ -1338,17 +1125,15 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     // Check if going into debt
     const goingIntoDebt = selectedGearCost > 0 && currentFunds < selectedGearCost;
     
-    // Store full gear data in request for approved items to show stats AND for inventory
+    // Store full gear data in request for approved items to show stats
     const gearStats = typeof selectedGear === 'object' ? {
-      name: selectedGear.name, // ADDED FOR INVENTORY TRACKING
       bonus: selectedGear.bonus || '',
       damage: selectedGear.damage || '',
       range: selectedGear.range || '',
       weight: selectedGear.weight || '',
       cost: selectedGear.cost || '',
-      notes: selectedGear.notes || '',
-      imageUrl: selectedGear.imageUrl || '' // ADDED FOR INVENTORY TRACKING
-    } : {name: gearName}; // Minimal object for string-only gear
+      notes: selectedGear.notes || ''
+    } : null;
 
     const request = {
       callsign,
@@ -1383,12 +1168,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     const requests = snapshot.val();
     if (!requests) return;
 
-    // Filter logic to show all non-pending requests AND current user's pending requests
-    const entries = Object.entries(requests)
-      .map(([id, r]) => ({id, ...r}))
-      .filter(r => 
-        r.status !== 'pending' || (r.status === 'pending' && r.callsign === currentUser)
-      )
+    const entries = Object.values(requests)
+      .filter(r => r.status !== 'pending')
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 20);
 
@@ -1398,25 +1179,13 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
       div.className = 'log-entry';
       
       const timestamp = new Date(entry.timestamp).toLocaleString();
-      
-      // Added logic for 'pending' status display
-      const statusClass = entry.status === 'approved' 
-        ? 'status-approved' 
-        : entry.status === 'denied' 
-          ? 'status-denied'
-          : 'status-pending';
-
-      const statusText = entry.status === 'approved' 
-        ? 'APPROVED' 
-        : entry.status === 'denied' 
-          ? 'DENIED'
-          : 'PENDING...';
+      const statusClass = entry.status === 'approved' ? 'status-approved' : 'status-denied';
+      const statusText = entry.status === 'approved' ? 'APPROVED' : 'DENIED';
       
       // Build stats HTML only for approved items
       let statsHTML = '';
       if (entry.status === 'approved' && entry.gearStats) {
         const stats = entry.gearStats;
-        // Check for any actual stat besides name, which is always present
         let hasStats = stats.bonus || stats.damage || stats.range || stats.weight || stats.cost;
         
         if (hasStats) {
@@ -1484,41 +1253,23 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
       if (request.status !== 'pending' && lastSpoken[id] !== request.status) {
         lastSpoken[id] = request.status;
         
-        // Only deduct funds AND ADD TO INVENTORY if approved and for current user
+        // Only deduct funds if approved and for current user
         if (request.status === 'approved' && request.callsign === currentUser) {
           const cost = request.gearCost || 0;
-          
-          // 1. Deduct Funds
           if (cost > 0) {
             currentFunds -= cost;
             saveUserFunds(currentUser, currentFunds);
             updateFundsDisplay();
           }
-
-          // 2. ADD TO INVENTORY 
-          if (request.gearStats) {
-              set(ref(db, `users/${currentUser}/inventory/${id}`), {
-                  gear: request.gear,
-                  stats: request.gearStats,
-                  approvedTimestamp: Date.now()
-              });
-          }
-
           playSuccess();
         } else {
-          // Play error if denied for the current user (if current user requested it)
-          if (request.callsign === currentUser) {
-            playError();
-          }
+          playError();
         }
         
-        // Announce decision for all requests related to the current user
-        if (request.callsign === currentUser) {
-          const message = request.status === 'approved' 
-            ? `Requisition approved. ${request.gear}. Authorization granted.`
-            : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
-          speak(message);
-        }
+        const message = request.status === 'approved' 
+          ? `Requisition approved. ${request.gear}. Authorization granted.`
+          : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
+        speak(message);
       }
     });
   });
