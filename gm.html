@@ -923,7 +923,7 @@ document.getElementById('addGearBtn').addEventListener('click', async () => {
   let imageUrl = null;
   const fileInput = document.getElementById('newGearImage');
   if (fileInput.files[0]) {
-    alert('Uploading image… (this takes 2–5 seconds)');
+    alert('Uploading image… (2–5 seconds)');
     imageUrl = await uploadImageFree(fileInput.files[0]);
   }
 
@@ -935,35 +935,32 @@ document.getElementById('addGearBtn').addEventListener('click', async () => {
     weight: document.getElementById('newWeight').value.trim(),
     cost: document.getElementById('newCost').value.trim(),
     notes: document.getElementById('newNotes').value.trim(),
-    imageUrl   // ← this is the new field
+    imageUrl
   };
 
-  const snapshot = await get(ref(db, 'gear'));
-  const gear = snapshot.val() || [];
-  gear.push(newItem);
-  await set(ref(db, 'gear'), gear);
+  try {
+    const snapshot = await get(ref(db, 'gear'));
+    const gear = snapshot.val() || [];
+    gear.push(newItem);
+    await set(ref(db, 'gear'), gear);
 
-  // clear form
-  ['newName','newBonus','newDamage','newRange','newWeight','newCost','newNotes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('newGearImage').value = '';
+    // clear form
+    document.getElementById('newName').value = '';
+    document.getElementById('newBonus').value = '';
+    document.getElementById('newDamage').value = '';
+    document.getElementById('newRange').value = '';
+    document.getElementById('newWeight').value = '';
+    document.getElementById('newCost').value = '';
+    document.getElementById('newNotes').value = '';
+    document.getElementById('newGearImage').value = '';
 
-  alert('Gear + image added!');
+    alert('Equipment added successfully!');
+  } catch (error) {
+    console.error('Error adding gear:', error);
+    alert('Error adding equipment. Check console for details.');
+  }
 });
-      // Clear form
-      document.getElementById('newName').value = '';
-      document.getElementById('newBonus').value = '';
-      document.getElementById('newDamage').value = '';
-      document.getElementById('newRange').value = '';
-      document.getElementById('newWeight').value = '';
-      document.getElementById('newCost').value = '';
-      document.getElementById('newNotes').value = '';
-      
-      alert('Equipment added successfully!');
-    } catch (error) {
-      console.error('Error adding gear:', error);
-      alert('Error adding equipment. Check console for details.');
-}
-});
+  
   // Open edit modal
   function openEditModal(index) {
     currentEditIndex = index;
