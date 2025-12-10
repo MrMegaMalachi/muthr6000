@@ -679,6 +679,8 @@ button:active {
   let selectedGearCost = 0;
   let messagesListenerActive = false;
   let messagesUnsubscribe = null; 
+  let voicesLoadedResolve;
+  const voicesLoaded = new Promise((resolve) => { voicesLoadedResolve = resolve; });
   
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -872,7 +874,7 @@ function loadMessages(callsign) {
   
   // Attach listeners
   onValue(messagesRef, displayListener);
-  on(messagesRef, 'child_added', processListener);
+  onChildAdded(messagesRef, processListener);
   
   // Unsubscribe function for logout
   messagesUnsubscribe = () => {
@@ -1213,8 +1215,9 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   });
 
   // Voice synthesis
-  function speak(text) {
+  async function speak(text) {
     if ('speechSynthesis' in window) {
+      await voicesLoaded;
       // Replace "MU THEE UR" with "Mother"
       text = text.replace(/MU THEE UR/gi, 'Mother');
       
@@ -1272,10 +1275,15 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
   // Load voices
   if ('speechSynthesis' in window) {
-    speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      speechSynthesis.getVoices();
-    };
+    if (speechSynthesis.getVoices().length > 0) {
+      voicesLoadedResolve();
+    } else {
+      speechSynthesis.onvoiceschanged = () => {
+        voicesLoadedResolve();
+      };
+    }
+  } else {
+    voicesLoadedResolve(); // Resolve immediately if no speech synthesis
   }
 </script>
 
