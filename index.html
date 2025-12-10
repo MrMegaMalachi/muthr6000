@@ -382,6 +382,12 @@ button:active {
   text-shadow: 0 0 15px #ff0000;
 }
 
+/* NEW: Style for pending requests in the log */
+.status-pending {
+  color: #ffff00;
+  text-shadow: 0 0 10px #ffff00;
+}
+
 .loading {
   text-align: center;
   padding: 20px;
@@ -542,6 +548,68 @@ button:active {
   color: #ff00ff;
 }
 
+/* NEW: Inventory Styles */
+.inventory-section {
+    margin-top: 40px;
+    padding: 25px;
+    background: rgba(0, 255, 0, 0.05);
+    border: 2px solid #00ff00;
+    box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+.inventory-header {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    letter-spacing: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #00ff00;
+}
+
+.btn-toggle-inventory {
+    width: auto;
+    padding: 8px 15px;
+    font-size: 0.8em;
+    letter-spacing: 2px;
+    border: 2px solid #00ff00;
+    background: #000;
+}
+
+.inventory-card {
+    background: rgba(0, 255, 0, 0.15);
+    border-left: 5px solid #00ff00;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.inventory-title {
+    font-size: 1.1em;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.inventory-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.inventory-stat {
+    font-size: 0.8em;
+    padding: 3px;
+}
+
+.inventory-stat-label {
+    opacity: 0.6;
+    display: block;
+}
+
 @media (max-width: 600px) {
   h1 {
     font-size: 1.5em;
@@ -591,6 +659,18 @@ button:active {
   </div>
 
   <div id="requisitionSection" style="display: none;">
+    
+    <div id="inventorySection" class="inventory-section">
+        <div class="inventory-header">
+            📦 CURRENT INVENTORY
+            <button id="toggleInventoryBtn" class="btn-toggle-inventory">TOGGLE VIEW</button>
+        </div>
+        <div id="inventoryContainer" style="display: none;">
+            <div id="noInventoryMsg" style="text-align: center; opacity: 0.5; padding: 20px;">
+                INVENTORY EMPTY. SUBMIT REQUISITIONS.
+            </div>
+        </div>
+    </div>
     <div id="objectivesSection" class="objectives-section" style="display: none;">
       <div class="objectives-header">
         🎯 MISSION OBJECTIVES<span class="cursor"></span>
@@ -621,6 +701,10 @@ button:active {
     <img id="gearImage" style="max-width:100%; max-height:450px; border:3px solid #00ff00; box-shadow:0 0 30px #00ff00;">
   </div>
 </div>
+    
+      <div id="affordabilityWarning" class="affordability-warning" style="display: none;">
+          🚨 WARNING: INSUFFICIENT FUNDS. DEBT WILL BE INCURRED UPON APPROVAL. 🚨
+      </div>
 
       <div class="form-group">
         <label>JUSTIFICATION (OPTIONAL):</label>
@@ -763,6 +847,55 @@ button:active {
     set(ref(db, `users/${callsign}/funds`), funds);
   }
 
+  // NEW FUNCTION: Load and display user inventory
+function loadInventory(callsign) {
+    const container = document.getElementById('inventoryContainer');
+    const noInventoryMsg = document.getElementById('noInventoryMsg');
+    
+    onValue(ref(db, `users/${callsign}/inventory`), (snapshot) => {
+        const inventory = snapshot.val();
+        container.innerHTML = '';
+
+        if (!inventory || Object.keys(inventory).length === 0) {
+            noInventoryMsg.style.display = 'block';
+            return;
+        }
+
+        noInventoryMsg.style.display = 'none';
+        
+        // Sort inventory by approval timestamp (if available) to show newest first
+        const sortedInventory = Object.values(inventory).sort((a, b) => b.approvedTimestamp - a.approvedTimestamp);
+
+        sortedInventory.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'inventory-card';
+            
+            // Build stats HTML
+            let statsHTML = '';
+            // Note: Inventory stores the full gearStats object under 'stats' key
+            if (item.stats) {
+                const stats = item.stats;
+                statsHTML += '<div class="inventory-stats">';
+                
+                if (stats.bonus) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">BONUS</span>${stats.bonus}</div>`;
+                if (stats.damage) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">DMG</span>${stats.damage}</div>`;
+                if (stats.range) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">RANGE</span>${stats.range}</div>`;
+                if (stats.weight) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">WEIGHT</span>${stats.weight}</div>`;
+                if (stats.cost) statsHTML += `<div class="inventory-stat"><span class="inventory-stat-label">COST</span>${stats.cost}</div>`;
+
+                statsHTML += '</div>';
+            }
+            
+            div.innerHTML = `
+                <div class="inventory-title">${item.gear}</div>
+                ${statsHTML}
+            `;
+            
+            container.appendChild(div);
+        });
+    });
+}
+
   // Login
   document.getElementById('loginBtn').addEventListener('click', () => {
     const callsign = document.getElementById('loginCallsign').value.trim();
@@ -804,8 +937,25 @@ button:active {
       loadUserFunds(callsign);
       loadMessages(callsign);
       loadObjectives();
+      // NEW: Load inventory on login
+      loadInventory(callsign);
     }, { onlyOnce: true });
   });
+
+  // NEW: Inventory Toggle Button
+document.getElementById('toggleInventoryBtn').addEventListener('click', () => {
+    playSelect();
+    const container = document.getElementById('inventoryContainer');
+    const button = document.getElementById('toggleInventoryBtn');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        button.textContent = 'TOGGLE VIEW (HIDE)';
+    } else {
+        container.style.display = 'none';
+        button.textContent = 'TOGGLE VIEW';
+    }
+});
+
 
   // Listen for messages
 function loadMessages(callsign) {
@@ -1066,10 +1216,14 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     }
     
     if (item.cost) {
+      // Logic to color the cost based on affordability
+      const isAffordable = currentFunds >= selectedGearCost;
+      const costClass = isAffordable ? 'status-approved' : 'status-denied';
+
       detailsHTML += `
         <div class="gear-detail-item">
-          <div class="gear-detail-label">COST</div>
-          <div class="gear-detail-value">${item.cost}</div>
+          <div class="gear-detail-label">COST & FUND STATUS</div>
+          <div class="gear-detail-value ${costClass}">${item.cost}</div>
         </div>
       `;
     }
@@ -1124,15 +1278,17 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     // Check if going into debt
     const goingIntoDebt = selectedGearCost > 0 && currentFunds < selectedGearCost;
     
-    // Store full gear data in request for approved items to show stats
+    // Store full gear data in request for approved items to show stats AND for inventory
     const gearStats = typeof selectedGear === 'object' ? {
+      name: selectedGear.name, // ADDED FOR INVENTORY TRACKING
       bonus: selectedGear.bonus || '',
       damage: selectedGear.damage || '',
       range: selectedGear.range || '',
       weight: selectedGear.weight || '',
       cost: selectedGear.cost || '',
-      notes: selectedGear.notes || ''
-    } : null;
+      notes: selectedGear.notes || '',
+      imageUrl: selectedGear.imageUrl || '' // ADDED FOR INVENTORY TRACKING
+    } : {name: gearName}; // Minimal object for string-only gear
 
     const request = {
       callsign,
@@ -1167,8 +1323,12 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     const requests = snapshot.val();
     if (!requests) return;
 
-    const entries = Object.values(requests)
-      .filter(r => r.status !== 'pending')
+    // MODIFIED: Filter logic to show all non-pending requests AND current user's pending requests
+    const entries = Object.entries(requests)
+      .map(([id, r]) => ({id, ...r}))
+      .filter(r => 
+        r.status !== 'pending' || (r.status === 'pending' && r.callsign === currentUser)
+      )
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 20);
 
@@ -1178,13 +1338,25 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
       div.className = 'log-entry';
       
       const timestamp = new Date(entry.timestamp).toLocaleString();
-      const statusClass = entry.status === 'approved' ? 'status-approved' : 'status-denied';
-      const statusText = entry.status === 'approved' ? 'APPROVED' : 'DENIED';
+      
+      // MODIFIED: Added logic for 'pending' status display
+      const statusClass = entry.status === 'approved' 
+        ? 'status-approved' 
+        : entry.status === 'denied' 
+          ? 'status-denied'
+          : 'status-pending';
+
+      const statusText = entry.status === 'approved' 
+        ? 'APPROVED' 
+        : entry.status === 'denied' 
+          ? 'DENIED'
+          : 'PENDING...';
       
       // Build stats HTML only for approved items
       let statsHTML = '';
       if (entry.status === 'approved' && entry.gearStats) {
         const stats = entry.gearStats;
+        // Check for any actual stat besides name, which is always present
         let hasStats = stats.bonus || stats.damage || stats.range || stats.weight || stats.cost;
         
         if (hasStats) {
@@ -1252,23 +1424,41 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
       if (request.status !== 'pending' && lastSpoken[id] !== request.status) {
         lastSpoken[id] = request.status;
         
-        // Only deduct funds if approved and for current user
+        // Only deduct funds AND ADD TO INVENTORY if approved and for current user
         if (request.status === 'approved' && request.callsign === currentUser) {
           const cost = request.gearCost || 0;
+          
+          // 1. Deduct Funds
           if (cost > 0) {
             currentFunds -= cost;
             saveUserFunds(currentUser, currentFunds);
             updateFundsDisplay();
           }
+
+          // 2. ADD TO INVENTORY (The core user request)
+          if (request.gearStats) {
+              set(ref(db, `users/${currentUser}/inventory/${id}`), {
+                  gear: request.gear,
+                  stats: request.gearStats,
+                  approvedTimestamp: Date.now()
+              });
+          }
+
           playSuccess();
         } else {
-          playError();
+          // Play error if denied for the current user (if current user requested it)
+          if (request.callsign === currentUser) {
+            playError();
+          }
         }
         
-        const message = request.status === 'approved' 
-          ? `Requisition approved. ${request.gear}. Authorization granted.`
-          : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
-        speak(message);
+        // Announce decision for all requests related to the current user
+        if (request.callsign === currentUser) {
+          const message = request.status === 'approved' 
+            ? `Requisition approved. ${request.gear}. Authorization granted.`
+            : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
+          speak(message);
+        }
       }
     });
   });
