@@ -678,7 +678,8 @@ button:active {
   let currentUser = null;
   let currentFunds = 0;
   let selectedGearCost = 0;
-
+  let messagesListenerActive = false;
+  
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   
@@ -805,56 +806,64 @@ button:active {
   });
 
   // Listen for messages
-  function loadMessages(callsign) {
-    const messagesSection = document.getElementById('messagesSection');
-    const messagesContainer = document.getElementById('messagesContainer');
-    
-    onValue(ref(db, `messages/${callsign}`), (snapshot) => {
-      const messages = snapshot.val();
-      
-      if (!messages) {
-        messagesSection.style.display = 'none';
-        return;
-      }
-      
-      const messageList = Object.entries(messages)
-        .map(([id, msg]) => ({ id, ...msg }))
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 10);
-      
-      if (messageList.length === 0) {
-        messagesSection.style.display = 'none';
-        return;
-      }
-      
-      messagesSection.style.display = 'block';
-      messagesContainer.innerHTML = '';
-      
-      messageList.forEach(message => {
-        const div = document.createElement('div');
-        div.className = 'message-entry';
-        
-        const timestamp = new Date(message.timestamp).toLocaleString();
-        
-        div.innerHTML = `
-          <div class="message-header">▸ TRANSMISSION FROM MU/TH/UR 6000</div>
-          <div class="message-timestamp">${timestamp}</div>
-          <div class="message-text">${message.text}</div>
-        `;
-        
-        messagesContainer.appendChild(div);
-        
-        // Speak new unread messages
-        if (!message.read) {
-          speak(message.text);
-          playAlert();
-          // Mark as read
-          update(ref(db, `messages/${callsign}/${message.id}`), { read: true });
-        }
-      });
-    });
+function loadMessages(callsign) {
+  // FIX: If the listener is already active, exit immediately
+  if (messagesListenerActive) {
+    return; 
   }
+    
+  const messagesSection = document.getElementById('messagesSection');
+  const messagesContainer = document.getElementById('messagesContainer');
+  
+  onValue(ref(db, `messages/${callsign}`), (snapshot) => {
+    const messages = snapshot.val();
+    
+    if (!messages) {
+      messagesSection.style.display = 'none';
+      return;
+    }
+    
+    const messageList = Object.entries(messages)
+      .map(([id, msg]) => ({ id, ...msg }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10);
+    
+    if (messageList.length === 0) {
+      messagesSection.style.display = 'none';
+      return;
+    }
+    
+    messagesSection.style.display = 'block';
+    messagesContainer.innerHTML = '';
+    
+    messageList.forEach(message => {
+      const div = document.createElement('div');
+      div.className = 'message-entry';
+      
+      const timestamp = new Date(message.timestamp).toLocaleString();
+      
+      div.innerHTML = `
+        <div class="message-header">▸ TRANSMISSION FROM MU/TH/UR 6000</div>
+        <div class="message-timestamp">${timestamp}</div>
+        <div class="message-text">${message.text}</div>
+      `;
+      
+      messagesContainer.appendChild(div);
+      
+      // Speak new unread messages
+      if (!message.read) {
+        speak(message.text);
+        playAlert();
+        // Mark as read
+        update(ref(db, `messages/${callsign}/${message.id}`), { read: true });
+      }
+    });
+  });
 
+  // Mark the listener as active now that it has been created
+  messagesListenerActive = true;
+}
+  
 // Load objectives
 let announcedObjectives = new Set();
 
