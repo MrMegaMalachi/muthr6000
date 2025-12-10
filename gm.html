@@ -1305,7 +1305,7 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
       objectivesListContainer.appendChild(div);
     });
     
-    // Add event listeners
+// Add event listeners - must be inside onValue
     document.querySelectorAll('.btn-complete').forEach(btn => {
       btn.addEventListener('click', () => completeObjective(btn.dataset.id));
     });
@@ -1313,7 +1313,7 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
     document.querySelectorAll('.objective-controls .btn-delete').forEach(btn => {
       btn.addEventListener('click', () => deleteObjective(btn.dataset.id));
     });
-  });
+  }); // This closes the onValue
 
   // Add new objective
   document.getElementById('addObjectiveBtn').addEventListener('click', async () => {
