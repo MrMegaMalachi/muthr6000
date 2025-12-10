@@ -804,56 +804,53 @@ button:active {
   });
 
   // Listen for messages
+    // FIXED: Messages — no more duplicate speaking or reading
   function loadMessages(callsign) {
     const messagesSection = document.getElementById('messagesSection');
     const messagesContainer = document.getElementById('messagesContainer');
-    
+
     onValue(ref(db, `messages/${callsign}`), (snapshot) => {
       const messages = snapshot.val();
-      
-      if (!messages) {
+
+      if (!messages || Object.keys(messages).length === 0) {
         messagesSection.style.display = 'none';
         return;
       }
-      
+
       const messageList = Object.entries(messages)
         .map(([id, msg]) => ({ id, ...msg }))
         .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 10);
-      
-      if (messageList.length === 0) {
-        messagesSection.style.display = 'none';
-        return;
-      }
-      
+
       messagesSection.style.display = 'block';
       messagesContainer.innerHTML = '';
-      
+
       messageList.forEach(message => {
         const div = document.createElement('div');
         div.className = 'message-entry';
-        
+        if (message.read) div.style.opacity = '0.6';
+
         const timestamp = new Date(message.timestamp).toLocaleString();
-        
+
         div.innerHTML = `
-          <div class="message-header">▸ TRANSMISSION FROM MU/TH/UR 6000</div>
+          <div class="message-header">TRANSMISSION FROM MU/TH/UR 6000 ${message.read ? '(READ)' : '(UNREAD)'}</div>
           <div class="message-timestamp">${timestamp}</div>
           <div class="message-text">${message.text}</div>
         `;
-        
+
         messagesContainer.appendChild(div);
-        
-        // Speak new unread messages
+
+        // ONLY speak and mark as read ONCE — when it's actually new
         if (!message.read) {
           speak(message.text);
           playAlert();
-          // Mark as read
-          update(ref(db, `messages/${callsign}/${message.id}`), { read: true });
+          // Mark as read in Firebase (will trigger onValue again, but read flag now true → won't re-speak)
+          set(ref(db, `messages/${callsign}/${message.id}/read`), true);
         }
       });
     });
   }
-
+  
 // Load objectives
 let announcedObjectives = new Set();
 
