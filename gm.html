@@ -671,7 +671,11 @@ textarea.form-input {
         <label class="form-label">NOTES / COMMENTS:</label>
         <textarea class="form-input" id="newNotes" placeholder="Special rules, requirements, etc..."></textarea>
       </div>
-      
+      <div class="form-group">
+  <label class="form-label">EQUIPMENT IMAGE (optional):</label>
+  <input type="file" class="form-input" id="newGearImage" accept="image/*">
+  <small style="opacity:0.7;font-size:0.8em;">Will upload for free to imgbb.com</small>
+</div>
       <button class="btn-add" id="addGearBtn">ADD EQUIPMENT</button>
     </div>
   </div>
@@ -781,6 +785,10 @@ textarea.form-input {
     <div class="form-group">
       <label class="form-label">NOTES / COMMENTS:</label>
       <textarea class="form-input" id="editNotes"></textarea>
+      <div class="form-group">
+  <label class="form-label">REPLACE IMAGE (optional):</label>
+  <input type="file" class="form-input" id="editGearImage" accept="image/*">
+</div>
     </div>
     
     <div class="modal-actions">
@@ -793,7 +801,25 @@ textarea.form-input {
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
   import { getDatabase, ref, onValue, set, update, push, get } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+// FREE IMAGE UPLOAD — no Firebase Storage needed
+async function uploadImageFree(file) {
+  if (!file) return null;
 
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('https://api.imgbb.com/1/upload?key=8b3b4f3b9e8e9e8e8e8e8e8e8e8e8e8e', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    return data.success ? data.data.url : null;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
   const firebaseConfig = {
     apiKey: "AIzaSyAn3oG0z19XbBqy5nzwhCtsqK64rNDeJQA",
     authDomain: "muthr6000.firebaseapp.com",
@@ -890,29 +916,39 @@ textarea.form-input {
   });
 
   // Add gear
-  document.getElementById('addGearBtn').addEventListener('click', async () => {
-    const name = document.getElementById('newName').value.trim();
-    if (!name) {
-      alert('Name is required!');
-      return;
-    }
+document.getElementById('addGearBtn').addEventListener('click', async () => {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) return alert('Name required!');
 
-    const newItem = {
-      name: name,
-      bonus: document.getElementById('newBonus').value.trim(),
-      damage: document.getElementById('newDamage').value.trim(),
-      range: document.getElementById('newRange').value.trim(),
-      weight: document.getElementById('newWeight').value.trim(),
-      cost: document.getElementById('newCost').value.trim(),
-      notes: document.getElementById('newNotes').value.trim()
-    };
+  let imageUrl = null;
+  const fileInput = document.getElementById('newGearImage');
+  if (fileInput.files[0]) {
+    alert('Uploading image… (this takes 2–5 seconds)');
+    imageUrl = await uploadImageFree(fileInput.files[0]);
+  }
 
-    try {
-      const snapshot = await get(ref(db, 'gear'));
-      const gear = snapshot.val() || [];
-      gear.push(newItem);
-      await set(ref(db, 'gear'), gear);
-      
+  const newItem = {
+    name,
+    bonus: document.getElementById('newBonus').value.trim(),
+    damage: document.getElementById('newDamage').value.trim(),
+    range: document.getElementById('newRange').value.trim(),
+    weight: document.getElementById('newWeight').value.trim(),
+    cost: document.getElementById('newCost').value.trim(),
+    notes: document.getElementById('newNotes').value.trim(),
+    imageUrl   // ← this is the new field
+  };
+
+  const snapshot = await get(ref(db, 'gear'));
+  const gear = snapshot.val() || [];
+  gear.push(newItem);
+  await set(ref(db, 'gear'), gear);
+
+  // clear form
+  ['newName','newBonus','newDamage','newRange','newWeight','newCost','newNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('newGearImage').value = '';
+
+  alert('Gear + image added!');
+});
       // Clear form
       document.getElementById('newName').value = '';
       document.getElementById('newBonus').value = '';
@@ -949,37 +985,36 @@ textarea.form-input {
   }
 
   // Save edit
-  document.getElementById('saveEditBtn').addEventListener('click', async () => {
-    const name = document.getElementById('editName').value.trim();
-    if (!name) {
-      alert('Name is required!');
-      return;
-    }
+document.getElementById('saveEditBtn').addEventListener('click', async () => {
+  const name = document.getElementById('editName').value.trim();
+  if (!name) return alert('Name required!');
 
-    const updatedItem = {
-      name: name,
-      bonus: document.getElementById('editBonus').value.trim(),
-      damage: document.getElementById('editDamage').value.trim(),
-      range: document.getElementById('editRange').value.trim(),
-      weight: document.getElementById('editWeight').value.trim(),
-      cost: document.getElementById('editCost').value.trim(),
-      notes: document.getElementById('editNotes').value.trim()
-    };
+  let imageUrl = currentGearArray[currentEditIndex]?.imageUrl || null;
+  const fileInput = document.getElementById('editGearImage');
+  if (fileInput.files[0]) {
+    alert('Uploading new image…');
+    imageUrl = await uploadImageFree(fileInput.files[0]);
+  }
 
-    try {
-      const snapshot = await get(ref(db, 'gear'));
-      const gear = snapshot.val() || [];
-      gear[currentEditIndex] = updatedItem;
-      await set(ref(db, 'gear'), gear);
-      
-      document.getElementById('editModal').classList.remove('active');
-      currentEditIndex = null;
-      alert('Equipment updated successfully!');
-    } catch (error) {
-      console.error('Error updating gear:', error);
-      alert('Error updating equipment. Check console for details.');
-    }
-  });
+  const updatedItem = {
+    name,
+    bonus: document.getElementById('editBonus').value.trim(),
+    damage: document.getElementById('editDamage').value.trim(),
+    range: document.getElementById('editRange').value.trim(),
+    weight: document.getElementById('editWeight').value.trim(),
+    cost: document.getElementById('editCost').value.trim(),
+    notes: document.getElementById('editNotes').value.trim(),
+    imageUrl
+  };
+
+  const snapshot = await get(ref(db, 'gear'));
+  const gear = snapshot.val() || [];
+  gear[currentEditIndex] = updatedItem;
+  await set(ref(db, 'gear'), gear);
+
+  document.getElementById('editModal').classList.remove('active');
+  alert('Gear updated!');
+});
 
   // Cancel edit
   document.getElementById('cancelEditBtn').addEventListener('click', () => {
