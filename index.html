@@ -621,6 +621,10 @@ button:active {
     <img id="gearImage" style="max-width:100%; max-height:450px; border:3px solid #00ff00; box-shadow:0 0 30px #00ff00;">
   </div>
 </div>
+    
+      <div id="affordabilityWarning" class="affordability-warning" style="display: none;">
+        ⚠️ INSUFFICIENT FUNDS - DEBT WILL BE INCURRED
+      </div>
 
       <div class="form-group">
         <label>JUSTIFICATION (OPTIONAL):</label>
@@ -656,8 +660,9 @@ button:active {
 </div>
 
 <script type="module">
+  // FIX: Added 'get' to imports for one-time fetch in login
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, get } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -677,10 +682,16 @@ button:active {
   let currentUser = null;
   let currentFunds = 0;
   let selectedGearCost = 0;
+  let gearData = []; // Global storage for gear data
+  let lastSpoken = {}; // Global tracking for spoken requests
 
-// NEW: References to store active Firebase listeners
-  let objectiveListenerRef = null;
-  let messageListenerRef = null;
+  // FIX: Variables to store unsubscribe functions for cleanup
+  let fundsUnsubscribe = null;
+  let messagesUnsubscribe = null;
+  let objectivesUnsubscribe = null;
+  let gearUnsubscribe = null;
+  let requestsLogUnsubscribe = null;
+  let requestsStatusUnsubscribe = null;
   
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -741,7 +752,7 @@ button:active {
     const fundsDisplay = document.getElementById('fundsDisplay');
     const fundsAmount = document.getElementById('fundsAmount');
     
-    fundsAmount.textContent = `${currentFunds.toFixed(2)}`;
+    fundsAmount.textContent = `$${currentFunds.toFixed(2)}`;
     
     if (currentFunds < 0) {
       fundsDisplay.classList.add('negative');
@@ -750,76 +761,71 @@ button:active {
     }
   }
 
-  // Load user funds from Firebase
-  function loadUserFunds(callsign) {
-    onValue(ref(db, `users/${callsign}/funds`), (snapshot) => {
-      currentFunds = snapshot.val() || 0;
-      updateFundsDisplay();
-    });
-  }
-
   // Save user funds to Firebase
   function saveUserFunds(callsign, funds) {
     set(ref(db, `users/${callsign}/funds`), funds);
   }
 
-  // Login
-  document.getElementById('loginBtn').addEventListener('click', () => {
-    const callsign = document.getElementById('loginCallsign').value.trim();
-    const funds = parseFloat(document.getElementById('loginFunds').value) || 0;
-    
-    if (!callsign) {
-      playError();
-      speak('CALLSIGN REQUIRED FOR TERMINAL ACCESS.');
-      return;
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      // Replace "MU THEE UR" with "Mother"
+      text = text.replace(/MU THEE UR/gi, 'Mother');
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = speechSynthesis.getVoices();
+      
+      // Try to find best female voice (prioritize UK/US female voices)
+      const femaleVoice = voices.find(v => 
+        v.name.includes('Google UK English Female') ||
+        v.name.includes('Microsoft Zira') ||
+        v.name.includes('Samantha') ||
+        v.name.includes('Female') ||
+        v.name.includes('female') ||
+        v.name.includes('woman') ||
+        v.name.includes('Woman')
+      );
+      
+      if (femaleVoice) utterance.voice = femaleVoice;
+      utterance.rate = 0.85;  // Slightly slower
+      utterance.pitch = 1.1;  // Higher pitch for more feminine
+      speechSynthesis.speak(utterance);
     }
-    
-    currentUser = callsign;
-    
-    // Check if user exists, if not create with provided funds
-    onValue(ref(db, `users/${callsign}`), (snapshot) => {
-      if (!snapshot.exists()) {
-        // New user
-        saveUserFunds(callsign, funds);
-        currentFunds = funds;
-      } else {
-        // Existing user - update funds if they entered a new amount
-        if (funds > 0) {
-          saveUserFunds(callsign, funds);
-          currentFunds = funds;
-        } else {
-          currentFunds = snapshot.val().funds || 0;
-        }
-      }
-      
-      playSuccess();
-      speak(`TERMINAL ACCESS GRANTED. WELCOME TO MOTHER, ${callsign}.`);
-      
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('requisitionSection').style.display = 'block';
-      document.getElementById('fundsDisplay').style.display = 'block';
-      document.getElementById('callsign').value = callsign;
-      
-      updateFundsDisplay();
-      loadUserFunds(callsign);
-      loadMessages(callsign);
-      loadObjectives();
-    }, { onlyOnce: true });
-  });
+  }
 
-// Listen for messages
+  // Load voices
+  if ('speechSynthesis' in window) {
+    speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      speechSynthesis.getVoices();
+    };
+  }
+  
+  // FIX: Utility function to stop all active Firebase listeners
+  function stopAllListeners() {
+    if (fundsUnsubscribe) { fundsUnsubscribe(); fundsUnsubscribe = null; }
+    if (messagesUnsubscribe) { messagesUnsubscribe(); messagesUnsubscribe = null; }
+    if (objectivesUnsubscribe) { objectivesUnsubscribe(); objectivesUnsubscribe = null; }
+    if (gearUnsubscribe) { gearUnsubscribe(); gearUnsubscribe = null; }
+    if (requestsLogUnsubscribe) { requestsLogUnsubscribe(); requestsLogUnsubscribe = null; }
+    if (requestsStatusUnsubscribe) { requestsStatusUnsubscribe(); requestsStatusUnsubscribe = null; }
+    lastSpoken = {}; // Reset tracking for status changes
+    console.log("All Firebase listeners stopped.");
+  }
+
+  // 1. Load user funds from Firebase (listener 1)
+  function loadUserFunds(callsign) {
+    fundsUnsubscribe = onValue(ref(db, `users/${callsign}/funds`), (snapshot) => {
+      currentFunds = snapshot.val() || 0;
+      updateFundsDisplay();
+    });
+  }
+  
+  // 2. Listen for messages (listener 2)
   function loadMessages(callsign) {
     const messagesSection = document.getElementById('messagesSection');
     const messagesContainer = document.getElementById('messagesContainer');
-    const messagesDbRef = ref(db, `messages/${callsign}`); // Reference to DB path
-
-    // NEW: Stop the old listener before starting a new one
-    if (messageListenerRef) {
-        off(messageListenerRef);
-    }
     
-    // NEW: Store the listener reference
-    messageListenerRef = onValue(messagesDbRef, (snapshot) => {
+    messagesUnsubscribe = onValue(ref(db, `messages/${callsign}`), (snapshot) => {
       const messages = snapshot.val();
       
       if (!messages) {
@@ -865,19 +871,12 @@ button:active {
     });
   }
 
-// Load objectives
+  // 3. Load objectives (listener 3)
   function loadObjectives() {
     const objectivesSection = document.getElementById('objectivesSection');
     const objectivesContainer = document.getElementById('objectivesContainer');
-    const objectivesDbRef = ref(db, 'objectives'); // Reference to DB path
-
-    // NEW: Stop the old listener before starting a new one
-    if (objectiveListenerRef) {
-        off(objectiveListenerRef);
-    }
-
-    // NEW: Store the listener reference
-    objectiveListenerRef = onValue(objectivesDbRef, (snapshot) => {
+    
+    objectivesUnsubscribe = onValue(ref(db, 'objectives'), (snapshot) => {
       const objectives = snapshot.val();
       
       if (!objectives) {
@@ -896,8 +895,6 @@ button:active {
       
       objectivesSection.style.display = 'block';
       objectivesContainer.innerHTML = '';
-      
-      let hasNewObjective = false;
       
       activeObjectives.forEach(([id, objective]) => {
         const div = document.createElement('div');
@@ -918,7 +915,6 @@ button:active {
         
         // Check if this is a new objective that hasn't been announced
         if (!objective.announced) {
-          hasNewObjective = true;
           playAlert();
           speak(`New mission objective received. ${objective.title}. Priority ${objective.priority}.`);
           // Mark as announced
@@ -928,19 +924,171 @@ button:active {
     });
   }
 
-  // Logout
+  // FIX: Consolidated function to start the remaining global listeners (4, 5, 6)
+  function startGlobalListeners() {
+    const gearSelect = document.getElementById('gear');
+    const logContainer = document.getElementById('logContainer');
+
+    // 4. Listen for gear list updates (listener 4)
+    gearUnsubscribe = onValue(ref(db, 'gear'), (snapshot) => {
+      gearData = snapshot.val() || [];
+      gearSelect.innerHTML = '<option value="">-- SELECT EQUIPMENT --</option>';
+      gearData.forEach((item, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        const name = typeof item === 'object' ? item.name : item;
+        option.textContent = name;
+        gearSelect.appendChild(option);
+      });
+    });
+
+    // 5. Listen for decisions and populate log (listener 5)
+    requestsLogUnsubscribe = onValue(ref(db, 'requests'), (snapshot) => {
+      const requests = snapshot.val();
+      if (!requests) return;
+
+      const entries = Object.values(requests)
+        .filter(r => r.status !== 'pending')
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 20);
+
+      logContainer.innerHTML = '';
+      entries.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        
+        const timestamp = new Date(entry.timestamp).toLocaleString();
+        const statusClass = entry.status === 'approved' ? 'status-approved' : 'status-denied';
+        const statusText = entry.status === 'approved' ? 'APPROVED' : 'DENIED';
+        
+        // Build stats HTML only for approved items
+        let statsHTML = '';
+        if (entry.status === 'approved' && entry.gearStats) {
+          const stats = entry.gearStats;
+          let hasStats = stats.bonus || stats.damage || stats.range || stats.weight || stats.cost;
+          
+          if (hasStats) {
+            statsHTML = '<div class="log-stats">';
+            if (stats.bonus) statsHTML += `<div class="log-stat"><span class="log-stat-label">BONUS</span><span class="log-stat-value">${stats.bonus}</span></div>`;
+            if (stats.damage) statsHTML += `<div class="log-stat"><span class="log-stat-label">DAMAGE</span><span class="log-stat-value">${stats.damage}</span></div>`;
+            if (stats.range) statsHTML += `<div class="log-stat"><span class="log-stat-label">RANGE</span><span class="log-stat-value">${stats.range}</span></div>`;
+            if (stats.weight) statsHTML += `<div class="log-stat"><span class="log-stat-label">WEIGHT</span><span class="log-stat-value">${stats.weight}</span></div>`;
+            if (stats.cost) statsHTML += `<div class="log-stat"><span class="log-stat-label">COST</span><span class="log-stat-value">${stats.cost}</span></div>`;
+            statsHTML += '</div>';
+          }
+          
+          if (stats.notes) {
+            statsHTML += `<div class="log-notes">${stats.notes}</div>`;
+          }
+        }
+        
+        div.innerHTML = `
+          <div class="log-timestamp">${timestamp}</div>
+          <div class="log-item">CALLSIGN: ${entry.callsign}</div>
+          <div class="log-item">ITEM: ${entry.gear}</div>
+          ${statsHTML}
+          <div class="log-item ${statusClass}">STATUS: ${statusText}</div>
+        `;
+        
+        logContainer.appendChild(div);
+      });
+    });
+
+    // 6. Listen for status changes to speak results and deduct funds (listener 6)
+    requestsStatusUnsubscribe = onValue(ref(db, 'requests'), (snapshot) => {
+      const requests = snapshot.val();
+      if (!requests) return;
+
+      Object.entries(requests).forEach(([id, request]) => {
+        if (request.status !== 'pending' && lastSpoken[id] !== request.status) {
+          lastSpoken[id] = request.status;
+          
+          // Only deduct funds if approved and for current user
+          if (request.status === 'approved' && request.callsign === currentUser) {
+            const cost = request.gearCost || 0;
+            if (cost > 0) {
+              currentFunds -= cost;
+              saveUserFunds(currentUser, currentFunds);
+              updateFundsDisplay();
+            }
+            playSuccess();
+          } else {
+            playError();
+          }
+          
+          const message = request.status === 'approved' 
+            ? `Requisition approved. ${request.gear}. Authorization granted.`
+            : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
+          speak(message);
+        }
+      });
+    });
+  }
+  
+  // Login (FIXED: Using get() for one-time fetch and added listener cleanup)
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    const callsign = document.getElementById('loginCallsign').value.trim().toUpperCase();
+    const funds = parseFloat(document.getElementById('loginFunds').value) || 0;
+    
+    if (!callsign) {
+      playError();
+      speak('CALLSIGN REQUIRED FOR TERMINAL ACCESS.');
+      return;
+    }
+
+    // Stop all old listeners before starting new ones (important for re-login)
+    stopAllListeners();
+
+    currentUser = callsign;
+    
+    // Check if user exists using get() for a one-time fetch
+    get(ref(db, `users/${callsign}`))
+      .then((snapshot) => {
+        if (!snapshot.exists()) {
+          // New user
+          saveUserFunds(callsign, funds);
+          currentFunds = funds;
+        } else {
+          // Existing user - update funds if they entered a new amount, otherwise use saved funds
+          const existingFunds = snapshot.val().funds || 0;
+          if (funds > 0) {
+            saveUserFunds(callsign, funds);
+            currentFunds = funds;
+          } else {
+            currentFunds = existingFunds;
+          }
+        }
+        
+        playSuccess();
+        speak(`TERMINAL ACCESS GRANTED. WELCOME TO MU THEE UR, ${callsign}.`);
+        
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('requisitionSection').style.display = 'block';
+        document.getElementById('fundsDisplay').style.display = 'block';
+        document.getElementById('callsign').value = callsign;
+        
+        updateFundsDisplay();
+        
+        // Start ALL persistent listeners
+        loadUserFunds(callsign);
+        loadMessages(callsign);
+        loadObjectives();
+        startGlobalListeners();
+      })
+      .catch(error => {
+        console.error("Firebase get error:", error);
+        playError();
+        speak("CRITICAL ERROR. FIREBASE CONNECTION FAILED.");
+      });
+  });
+
+  // Logout (FIXED: Unsubscribe all listeners)
   document.getElementById('logoutBtn').addEventListener('click', () => {
     playSelect();
-    // 👇 ADD THIS BLOCK: Stop the active listeners when the user logs out
-    if (objectiveListenerRef) {
-        off(objectiveListenerRef);
-        objectiveListenerRef = null;
-    }
-    if (messageListenerRef) {
-        off(messageListenerRef);
-        messageListenerRef = null;
-    }
-    // 👆 END ADDED BLOCK
+    
+    // Stop ALL active Firebase listeners to prevent duplicates
+    stopAllListeners(); 
+    
     currentUser = null;
     currentFunds = 0;
     document.getElementById('loginSection').style.display = 'block';
@@ -950,65 +1098,62 @@ button:active {
     document.getElementById('objectivesSection').style.display = 'none';
     document.getElementById('loginCallsign').value = '';
     document.getElementById('loginFunds').value = '';
+    document.getElementById('gearDetails').style.display = 'none';
+    document.getElementById('affordabilityWarning').style.display = 'none';
+    document.getElementById('gearImageBox').style.display = 'none';
   });
 
   // Update funds manually
   document.getElementById('updateFundsBtn').addEventListener('click', () => {
-    const newFunds = parseFloat(document.getElementById('updateFunds').value);
+    const updateFundsInput = document.getElementById('updateFunds');
+    const newFunds = parseFloat(updateFundsInput.value);
     
-    if (isNaN(newFunds) || newFunds < 0) {
+    if (!currentUser) {
       playError();
-      speak('INVALID FUNDS AMOUNT.');
+      speak('ACCESS DENIED. PLEASE LOG IN FIRST.');
+      return;
+    }
+
+    if (isNaN(newFunds) || newFunds <= 0) { // Changed to newFunds <= 0 to ensure positive funds are added
+      playError();
+      speak('INVALID FUNDS AMOUNT. ENTER A POSITIVE VALUE.');
       return;
     }
     
-    currentFunds = newFunds;
+    // Logic to ADD funds, not replace
+    currentFunds += newFunds;
     saveUserFunds(currentUser, currentFunds);
     
     playSuccess();
     speak('FUNDS UPDATED.');
-    document.getElementById('updateFunds').value = '';
-  });
-
-  // Load saved callsign
-  const callsignInput = document.getElementById('callsign');
-
-  // Listen for gear list updates
-  const gearSelect = document.getElementById('gear');
-  const gearDetailsDiv = document.getElementById('gearDetails');
-  const gearDetailsContent = document.getElementById('gearDetailsContent');
-  let gearData = [];
-  
-  onValue(ref(db, 'gear'), (snapshot) => {
-    gearData = snapshot.val() || [];
-    gearSelect.innerHTML = '<option value="">-- SELECT EQUIPMENT --</option>';
-    gearData.forEach((item, index) => {
-      const option = document.createElement('option');
-      option.value = index;
-      const name = typeof item === 'object' ? item.name : item;
-      option.textContent = name;
-      gearSelect.appendChild(option);
-    });
+    updateFundsInput.value = '';
   });
 
   // Show gear details when selected
+  const gearSelect = document.getElementById('gear');
+  const gearDetailsDiv = document.getElementById('gearDetails');
+  const gearDetailsContent = document.getElementById('gearDetailsContent');
+  
   gearSelect.addEventListener('change', () => {
     playSelect();
     const selectedIndex = gearSelect.value;
     
-    if (!selectedIndex) {
+    if (selectedIndex === '' || selectedIndex === null) {
       gearDetailsDiv.style.display = 'none';
       document.getElementById('affordabilityWarning').style.display = 'none';
+      document.getElementById('gearImageBox').style.display = 'none';
       selectedGearCost = 0;
       return;
     }
     
-    const item = gearData[selectedIndex];
+    // Ensure index is treated as a number
+    const item = gearData[parseInt(selectedIndex)];
     const isObject = typeof item === 'object';
     
-    if (!isObject || (!item.bonus && !item.damage && !item.range && !item.weight && !item.cost && !item.notes)) {
+    if (!isObject) {
       gearDetailsDiv.style.display = 'none';
       document.getElementById('affordabilityWarning').style.display = 'none';
+      document.getElementById('gearImageBox').style.display = 'none';
       selectedGearCost = 0;
       return;
     }
@@ -1016,6 +1161,7 @@ button:active {
     // Extract numeric cost
     selectedGearCost = 0;
     if (item.cost) {
+      // Robustly handle currency formatting if it exists, otherwise assume a number
       const costMatch = item.cost.toString().replace(/[^0-9.]/g, '');
       selectedGearCost = parseFloat(costMatch) || 0;
     }
@@ -1078,8 +1224,9 @@ button:active {
     
     gearDetailsContent.innerHTML = detailsHTML;
     gearDetailsDiv.style.display = 'block';
-        // SHOW IMAGE IF IT EXISTS
-    const imageUrl = typeof item === 'object' ? item.imageUrl : null;
+    
+    // SHOW IMAGE IF IT EXISTS
+    const imageUrl = item.imageUrl || null;
     const box = document.getElementById('gearImageBox');
     const img = document.getElementById('gearImage');
     if (imageUrl) {
@@ -1111,7 +1258,7 @@ button:active {
       return;
     }
 
-    const selectedGear = gearData[selectedIndex];
+    const selectedGear = gearData[parseInt(selectedIndex)];
     const gearName = typeof selectedGear === 'object' ? selectedGear.name : selectedGear;
     
     // Check if going into debt
@@ -1151,129 +1298,11 @@ button:active {
     document.getElementById('justification').value = '';
     document.getElementById('gearDetails').style.display = 'none';
     document.getElementById('affordabilityWarning').style.display = 'none';
+    document.getElementById('gearImageBox').style.display = 'none';
     selectedGearCost = 0;
   });
 
-  // Listen for decisions
-  const logContainer = document.getElementById('logContainer');
-  onValue(ref(db, 'requests'), (snapshot) => {
-    const requests = snapshot.val();
-    if (!requests) return;
-
-    const entries = Object.values(requests)
-      .filter(r => r.status !== 'pending')
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, 20);
-
-    logContainer.innerHTML = '';
-    entries.forEach(entry => {
-      const div = document.createElement('div');
-      div.className = 'log-entry';
-      
-      const timestamp = new Date(entry.timestamp).toLocaleString();
-      const statusClass = entry.status === 'approved' ? 'status-approved' : 'status-denied';
-      const statusText = entry.status === 'approved' ? 'APPROVED' : 'DENIED';
-      
-      // Build stats HTML only for approved items
-      let statsHTML = '';
-      if (entry.status === 'approved' && entry.gearStats) {
-        const stats = entry.gearStats;
-        let hasStats = stats.bonus || stats.damage || stats.range || stats.weight || stats.cost;
-        
-        if (hasStats) {
-          statsHTML = '<div class="log-stats">';
-          if (stats.bonus) statsHTML += `<div class="log-stat"><span class="log-stat-label">BONUS</span><span class="log-stat-value">${stats.bonus}</span></div>`;
-          if (stats.damage) statsHTML += `<div class="log-stat"><span class="log-stat-label">DAMAGE</span><span class="log-stat-value">${stats.damage}</span></div>`;
-          if (stats.range) statsHTML += `<div class="log-stat"><span class="log-stat-label">RANGE</span><span class="log-stat-value">${stats.range}</span></div>`;
-          if (stats.weight) statsHTML += `<div class="log-stat"><span class="log-stat-label">WEIGHT</span><span class="log-stat-value">${stats.weight}</span></div>`;
-          if (stats.cost) statsHTML += `<div class="log-stat"><span class="log-stat-label">COST</span><span class="log-stat-value">${stats.cost}</span></div>`;
-          statsHTML += '</div>';
-        }
-        
-        if (stats.notes) {
-          statsHTML += `<div class="log-notes">${stats.notes}</div>`;
-        }
-      }
-      
-      div.innerHTML = `
-        <div class="log-timestamp">${timestamp}</div>
-        <div class="log-item">CALLSIGN: ${entry.callsign}</div>
-        <div class="log-item">ITEM: ${entry.gear}</div>
-        ${statsHTML}
-        <div class="log-item ${statusClass}">STATUS: ${statusText}</div>
-      `;
-      
-      logContainer.appendChild(div);
-    });
-  });
-
-  // Voice synthesis
-  function speak(text) {
-    if ('speechSynthesis' in window) {
-      // Replace "MU THEE UR" with "Mother"
-      text = text.replace(/MU THEE UR/gi, 'Mother');
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = speechSynthesis.getVoices();
-      
-      // Try to find best female voice (prioritize UK/US female voices)
-      const femaleVoice = voices.find(v => 
-        v.name.includes('Google UK English Female') ||
-        v.name.includes('Microsoft Zira') ||
-        v.name.includes('Samantha') ||
-        v.name.includes('Female') ||
-        v.name.includes('female') ||
-        v.name.includes('woman') ||
-        v.name.includes('Woman')
-      );
-      
-      if (femaleVoice) utterance.voice = femaleVoice;
-      utterance.rate = 0.85;  // Slightly slower
-      utterance.pitch = 1.1;  // Higher pitch for more feminine
-      speechSynthesis.speak(utterance);
-    }
-  }
-
-  // Listen for status changes to speak results and deduct funds
-  let lastSpoken = {};
-  onValue(ref(db, 'requests'), (snapshot) => {
-    const requests = snapshot.val();
-    if (!requests) return;
-
-    Object.entries(requests).forEach(([id, request]) => {
-      if (request.status !== 'pending' && lastSpoken[id] !== request.status) {
-        lastSpoken[id] = request.status;
-        
-        // Only deduct funds if approved and for current user
-        if (request.status === 'approved' && request.callsign === currentUser) {
-          const cost = request.gearCost || 0;
-          if (cost > 0) {
-            currentFunds -= cost;
-            saveUserFunds(currentUser, currentFunds);
-            updateFundsDisplay();
-          }
-          playSuccess();
-        } else {
-          playError();
-        }
-        
-        const message = request.status === 'approved' 
-          ? `Requisition approved. ${request.gear}. Authorization granted.`
-          : `Requisition denied. ${request.gear}. Request does not meet operational parameters.`;
-        speak(message);
-      }
-    });
-  });
-
-  // Load voices
-  if ('speechSynthesis' in window) {
-    speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      speechSynthesis.getVoices();
-    };
-  }
 </script>
 
 </body>
 </html>
-        
