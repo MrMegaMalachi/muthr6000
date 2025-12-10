@@ -655,10 +655,9 @@ button:active {
     <div id="messagesContainer"></div>
   </div>
 </div>
-
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -678,6 +677,10 @@ button:active {
   let currentUser = null;
   let currentFunds = 0;
   let selectedGearCost = 0;
+  
+  // ⭐ CHANGE 1: New global variables to hold listener references
+  let objectiveListenerRef = null;
+  let messageListenerRef = null; 
 
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -808,8 +811,14 @@ button:active {
   function loadMessages(callsign) {
     const messagesSection = document.getElementById('messagesSection');
     const messagesContainer = document.getElementById('messagesContainer');
+    const messagesDbRef = ref(db, `messages/${callsign}`); // Reference to DB path
     
-    onValue(ref(db, `messages/${callsign}`), (snapshot) => {
+    // ⭐ CHANGE 2 (A): Store the listener reference and stop the old one if it exists
+    if (messageListenerRef) {
+        off(messageListenerRef);
+    }
+
+    messageListenerRef = onValue(messagesDbRef, (snapshot) => {
       const messages = snapshot.val();
       
       if (!messages) {
@@ -859,8 +868,14 @@ button:active {
   function loadObjectives() {
     const objectivesSection = document.getElementById('objectivesSection');
     const objectivesContainer = document.getElementById('objectivesContainer');
+    const objectivesDbRef = ref(db, 'objectives'); // Reference to DB path
+
+    // ⭐ CHANGE 2 (B): Store the listener reference and stop the old one if it exists
+    if (objectiveListenerRef) {
+        off(objectiveListenerRef);
+    }
     
-    onValue(ref(db, 'objectives'), (snapshot) => {
+    objectiveListenerRef = onValue(objectivesDbRef, (snapshot) => {
       const objectives = snapshot.val();
       
       if (!objectives) {
@@ -913,6 +928,16 @@ button:active {
 
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', () => {
+    // ⭐ CHANGE 3: Stop the listeners when the user logs out
+    if (objectiveListenerRef) {
+        off(objectiveListenerRef);
+        objectiveListenerRef = null;
+    }
+    if (messageListenerRef) {
+        off(messageListenerRef);
+        messageListenerRef = null;
+    }
+
     playSelect();
     currentUser = null;
     currentFunds = 0;
@@ -971,7 +996,8 @@ button:active {
     
     if (!selectedIndex) {
       gearDetailsDiv.style.display = 'none';
-      document.getElementById('affordabilityWarning').style.display = 'none';
+      // There is no affordabilityWarning element in this HTML
+      // document.getElementById('affordabilityWarning').style.display = 'none';
       selectedGearCost = 0;
       return;
     }
@@ -981,7 +1007,7 @@ button:active {
     
     if (!isObject || (!item.bonus && !item.damage && !item.range && !item.weight && !item.cost && !item.notes)) {
       gearDetailsDiv.style.display = 'none';
-      document.getElementById('affordabilityWarning').style.display = 'none';
+      // document.getElementById('affordabilityWarning').style.display = 'none';
       selectedGearCost = 0;
       return;
     }
@@ -1063,13 +1089,14 @@ button:active {
     }
     
     // Check affordability
-    const warningDiv = document.getElementById('affordabilityWarning');
-    if (selectedGearCost > 0 && currentFunds < selectedGearCost) {
-      warningDiv.style.display = 'block';
-      playAlert();
-    } else {
-      warningDiv.style.display = 'none';
-    }
+    // The HTML does not contain an element with ID 'affordabilityWarning'
+    // const warningDiv = document.getElementById('affordabilityWarning');
+    // if (selectedGearCost > 0 && currentFunds < selectedGearCost) {
+    //   warningDiv.style.display = 'block';
+    //   playAlert();
+    // } else {
+    //   warningDiv.style.display = 'none';
+    // }
   });
 
   // Submit request
@@ -1123,7 +1150,7 @@ button:active {
     gearSelect.value = '';
     document.getElementById('justification').value = '';
     document.getElementById('gearDetails').style.display = 'none';
-    document.getElementById('affordabilityWarning').style.display = 'none';
+    // document.getElementById('affordabilityWarning').style.display = 'none';
     selectedGearCost = 0;
   });
 
@@ -1246,7 +1273,6 @@ button:active {
     };
   }
 </script>
-
 </body>
 </html>
         
