@@ -657,7 +657,7 @@ button:active {
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -678,6 +678,10 @@ button:active {
   let currentFunds = 0;
   let selectedGearCost = 0;
 
+// NEW: References to store active Firebase listeners
+  let objectiveListenerRef = null;
+  let messageListenerRef = null;
+  
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
   
@@ -803,12 +807,19 @@ button:active {
     }, { onlyOnce: true });
   });
 
-  // Listen for messages
+// Listen for messages
   function loadMessages(callsign) {
     const messagesSection = document.getElementById('messagesSection');
     const messagesContainer = document.getElementById('messagesContainer');
+    const messagesDbRef = ref(db, `messages/${callsign}`); // Reference to DB path
+
+    // NEW: Stop the old listener before starting a new one
+    if (messageListenerRef) {
+        off(messageListenerRef);
+    }
     
-    onValue(ref(db, `messages/${callsign}`), (snapshot) => {
+    // NEW: Store the listener reference
+    messageListenerRef = onValue(messagesDbRef, (snapshot) => {
       const messages = snapshot.val();
       
       if (!messages) {
@@ -854,12 +865,19 @@ button:active {
     });
   }
 
-  // Load objectives
+// Load objectives
   function loadObjectives() {
     const objectivesSection = document.getElementById('objectivesSection');
     const objectivesContainer = document.getElementById('objectivesContainer');
-    
-    onValue(ref(db, 'objectives'), (snapshot) => {
+    const objectivesDbRef = ref(db, 'objectives'); // Reference to DB path
+
+    // NEW: Stop the old listener before starting a new one
+    if (objectiveListenerRef) {
+        off(objectiveListenerRef);
+    }
+
+    // NEW: Store the listener reference
+    objectiveListenerRef = onValue(objectivesDbRef, (snapshot) => {
       const objectives = snapshot.val();
       
       if (!objectives) {
@@ -913,6 +931,16 @@ button:active {
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', () => {
     playSelect();
+    // 👇 ADD THIS BLOCK: Stop the active listeners when the user logs out
+    if (objectiveListenerRef) {
+        off(objectiveListenerRef);
+        objectiveListenerRef = null;
+    }
+    if (messageListenerRef) {
+        off(messageListenerRef);
+        messageListenerRef = null;
+    }
+    // 👆 END ADDED BLOCK
     currentUser = null;
     currentFunds = 0;
     document.getElementById('loginSection').style.display = 'block';
