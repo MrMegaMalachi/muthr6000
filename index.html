@@ -679,6 +679,7 @@ button:active {
   let currentFunds = 0;
   let selectedGearCost = 0;
   let messagesListenerActive = false;
+  let messagesUnsubscribe = null; 
   
   // Sound effects using Web Audio API
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -807,15 +808,19 @@ button:active {
 
   // Listen for messages
 function loadMessages(callsign) {
-  // FIX: If the listener is already active, exit immediately
+  // If already listening, don't create another listener
   if (messagesListenerActive) {
     return; 
   }
+  
+  // IMMEDIATELY mark as active BEFORE creating the listener
+  messagesListenerActive = true;
     
   const messagesSection = document.getElementById('messagesSection');
   const messagesContainer = document.getElementById('messagesContainer');
   
-  onValue(ref(db, `messages/${callsign}`), (snapshot) => {
+  // Store the "turn off" function so we can use it later
+  messagesUnsubscribe = onValue(ref(db, `messages/${callsign}`), (snapshot) => {
     const messages = snapshot.val();
     
     if (!messages) {
@@ -859,9 +864,6 @@ function loadMessages(callsign) {
       }
     });
   });
-
-  // Mark the listener as active now that it has been created
-  messagesListenerActive = true;
 }
   
 // Load objectives
@@ -917,20 +919,29 @@ function loadObjectives() {
     });
   });
 }
-  // Logout
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    playSelect();
-    currentUser = null;
-    currentFunds = 0;
-    document.getElementById('loginSection').style.display = 'block';
-    document.getElementById('requisitionSection').style.display = 'none';
-    document.getElementById('fundsDisplay').style.display = 'none';
-    document.getElementById('messagesSection').style.display = 'none';
-    document.getElementById('objectivesSection').style.display = 'none';
-    document.getElementById('loginCallsign').value = '';
-    document.getElementById('loginFunds').value = '';
-  });
-
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  playSelect();
+  
+  // Turn off the message listener (turn off the radio)
+  if (messagesUnsubscribe) {
+    messagesUnsubscribe();
+    messagesUnsubscribe = null;
+  }
+  
+  // Reset the flag so we can create a new listener on next login
+  messagesListenerActive = false;
+  
+  currentUser = null;
+  currentFunds = 0;
+  document.getElementById('loginSection').style.display = 'block';
+  document.getElementById('requisitionSection').style.display = 'none';
+  document.getElementById('fundsDisplay').style.display = 'none';
+  document.getElementById('messagesSection').style.display = 'none';
+  document.getElementById('objectivesSection').style.display = 'none';
+  document.getElementById('loginCallsign').value = '';
+  document.getElementById('loginFunds').value = '';
+});
   // Update funds manually
   document.getElementById('updateFundsBtn').addEventListener('click', () => {
     const newFunds = parseFloat(document.getElementById('updateFunds').value);
