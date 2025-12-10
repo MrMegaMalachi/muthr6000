@@ -854,62 +854,59 @@ button:active {
     });
   }
 
-  // Load objectives
-  function loadObjectives() {
-    const objectivesSection = document.getElementById('objectivesSection');
-    const objectivesContainer = document.getElementById('objectivesContainer');
-    
-    onValue(ref(db, 'objectives'), (snapshot) => {
-      const objectives = snapshot.val();
-      
-      if (!objectives) {
-        objectivesSection.style.display = 'none';
-        return;
-      }
-      
-      const activeObjectives = Object.entries(objectives)
-        .filter(([id, obj]) => obj.status === 'active')
-        .sort((a, b) => b[1].timestamp - a[1].timestamp);
-      
-      if (activeObjectives.length === 0) {
-        objectivesSection.style.display = 'none';
-        return;
-      }
-      
-      objectivesSection.style.display = 'block';
-      objectivesContainer.innerHTML = '';
-      
-      let hasNewObjective = false;
-      
-      activeObjectives.forEach(([id, objective]) => {
-        const div = document.createElement('div');
-        div.className = 'objective-card';
-        
-        const timestamp = new Date(objective.timestamp).toLocaleString();
-        
-        div.innerHTML = `
-          <div class="objective-header-row">
-            <div class="objective-title">${objective.title}</div>
-            <div class="objective-priority priority-${objective.priority}">${objective.priority}</div>
-          </div>
-          <div class="objective-desc">${objective.description || ''}</div>
-          <div class="objective-timestamp">ISSUED: ${timestamp}</div>
-        `;
-        
-        objectivesContainer.appendChild(div);
-        
-        // Check if this is a new objective that hasn't been announced
-        if (!objective.announced) {
-          hasNewObjective = true;
-          playAlert();
-          speak(`New mission objective received. ${objective.title}. Priority ${objective.priority}.`);
-          // Mark as announced
-          update(ref(db, `objectives/${id}`), { announced: true });
-        }
-      });
-    });
-  }
+// Load objectives
+let announcedObjectives = new Set();
 
+function loadObjectives() {
+  const objectivesSection = document.getElementById('objectivesSection');
+  const objectivesContainer = document.getElementById('objectivesContainer');
+  
+  onValue(ref(db, 'objectives'), (snapshot) => {
+    const objectives = snapshot.val();
+    
+    if (!objectives) {
+      objectivesSection.style.display = 'none';
+      return;
+    }
+    
+    const activeObjectives = Object.entries(objectives)
+      .filter(([id, obj]) => obj.status === 'active')
+      .sort((a, b) => b[1].timestamp - a[1].timestamp);
+    
+    if (activeObjectives.length === 0) {
+      objectivesSection.style.display = 'none';
+      return;
+    }
+    
+    objectivesSection.style.display = 'block';
+    objectivesContainer.innerHTML = '';
+    
+    activeObjectives.forEach(([id, objective]) => {
+      const div = document.createElement('div');
+      div.className = 'objective-card';
+      
+      const timestamp = new Date(objective.timestamp).toLocaleString();
+      
+      div.innerHTML = `
+        <div class="objective-header-row">
+          <div class="objective-title">${objective.title}</div>
+          <div class="objective-priority priority-${objective.priority}">${objective.priority}</div>
+        </div>
+        <div class="objective-desc">${objective.description || ''}</div>
+        <div class="objective-timestamp">ISSUED: ${timestamp}</div>
+      `;
+      
+      objectivesContainer.appendChild(div);
+      
+      // Check if this is a new objective that hasn't been announced
+      if (!announcedObjectives.has(id)) {
+        announcedObjectives.add(id);
+        playAlert();
+        speak(`New mission objective received. ${objective.title}. Priority ${objective.priority}.`);
+      }
+    });
+  });
+}
   // Logout
   document.getElementById('logoutBtn').addEventListener('click', () => {
     playSelect();
