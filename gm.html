@@ -622,9 +622,7 @@ textarea.form-input {
 </style>
 </head>
 <body>
-<audio id="atmosphereHum" loop autoplay style="display:none;">
-  <source src="hum.wav" type="audio/wav">
-</audio>
+
 <div class="container">
   <header>
     <h1>MU/TH/UR 6000</h1>
@@ -835,16 +833,6 @@ async function uploadImageFree(file) {
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
- // Atmosphere hum
-  window.addEventListener('load', () => {
-    const hum = document.getElementById('atmosphereHum');
-    if (hum) {
-      hum.volume = 0.2;
-      hum.play().catch(() => {
-        document.body.addEventListener('click', () => hum.play(), { once: true });
-      });
-    }
-  });
 
   let currentEditIndex = null;
   let currentGearArray = [];
