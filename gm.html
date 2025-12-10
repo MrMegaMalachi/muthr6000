@@ -1394,38 +1394,6 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
     }
 } 
 </script>
-<!-- Retro computer hum -->
-<audio id="backgroundHum" loop preload="auto">
-  <source src="hum.wav" type="audio/wav">
-  Your terminal does not support audio. The Company disapproves.
-</audio>
 
-<script>
-  const hum = document.getElementById('backgroundHum');
-  hum.volume = 0.15;
-
-  function playHum() {
-    hum.play().catch(() => {
-      const startOnClick = () => {
-        hum.play();
-        document.body.removeEventListener('click', startOnClick);
-        document.body.removeEventListener('touchstart', startOnClick);
-      };
-      document.body.addEventListener('click', startOnClick);
-      document.body.addEventListener('touchstart', startOnClick);
-    });
-  }
-
-  playHum();
-
-  setInterval(() => {
-    if (Math.random() < 0.25) {
-      const beep = new Audio('https://freesound.org/data/previews/276/276992_5123850-lq.mp3');
-      beep.volume = 0.07;
-      beep.play();
-    }
-  }, 25000 + Math.random() * 40000);
-</script>
-  
-</body>   ← this line stays
+</body>
 </html>
