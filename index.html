@@ -1289,5 +1289,168 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   }
 </script>
 
+  <!-- ==== NEW INVENTORY SECTION (copy from here) ==== -->
+  <div id="inventorySection" class="objectives-section" style="display: none; background: rgba(0, 255, 255, 0.05); border: 2px solid #00ffff; box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);">
+    <div class="objectives-header" style="color: #00ffff;">
+      PERSONAL INVENTORY<span class="cursor"></span>
+    </div>
+    <div id="inventoryContainer"></div>
+  </div>
+
+  <style>
+    .inventory-card {
+      background: rgba(0, 255, 255, 0.1);
+      border: 2px solid #00ffff;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      animation: objectiveFlash 0.5s;
+    }
+    .inventory-title {
+      font-size: 1.2em;
+      font-weight: 700;
+      color: #00ffff;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #00ffff;
+    }
+    .inventory-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(0, 255, 255, 0.08);
+      border: 1px solid #00ffff;
+    }
+    .inventory-stat {
+      font-size: 0.85em;
+      padding: 5px;
+      background: rgba(0, 0, 0, 0.4);
+    }
+    .inventory-stat-label {
+      opacity: 0.6;
+      font-size: 0.8em;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .inventory-stat-value {
+      font-weight: 700;
+    }
+    .inventory-notes {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border-left: 3px solid #ff9900;
+      font-style: italic;
+      font-size: 0.85em;
+    }
+    .inventory-timestamp {
+      font-size: 0.75em;
+      opacity: 0.6;
+      color: #00ffff;
+    }
+  </style>
+
+  <script>
+    // ←←←← ADD THIS ENTIRE SCRIPT (right before </body></html>) ←←←←
+
+    // Import one extra Firebase function
+    import { get } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+
+    // Global variable for inventory
+    let currentInventory = [];
+
+    // Load and show the player's inventory
+    function loadInventory(callsign) {
+      const section = document.getElementById('inventorySection');
+      const container = document.getElementById('inventoryContainer');
+      const invRef = ref(db, `users/${callsign}/inventory`);
+
+      onValue(invRef, (snap) => {
+        const data = snap.val();
+        if (!data || data.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+        currentInventory = data;
+        section.style.display = 'block';
+        container.innerHTML = '';
+
+        data.sort((a, b) => b.timestamp - a.timestamp).forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'inventory-card';
+
+          let stats = '';
+          if (item.gearStats) {
+            const s = item.gearStats;
+            if (s.bonus || s.damage || s.range || s.weight || s.cost) {
+              stats += '<div class="inventory-stats">';
+              if (s.bonus) stats += `<div class="inventory-stat"><span class="inventory-stat-label">BONUS</span><span class="inventory-stat-value">${s.bonus}</span></div>`;
+              if (s.damage) stats += `<div class="inventory-stat"><span class="inventory-stat-label">DAMAGE</span><span class="inventory-stat-value">${s.damage}</span></div>`;
+              if (s.range) stats += `<div class="inventory-stat"><span class="inventory-stat-label">RANGE</span><span class="inventory-stat-value">${s.range}</span></div>`;
+              if (s.weight) stats += `<div class="inventory-stat"><span class="inventory-stat-label">WEIGHT</span><span class="inventory-stat-value">${s.weight}</span></div>`;
+              if (s.cost) stats += `<div class="inventory-stat"><span class="inventory-stat-label">COST</span><span class="inventory-stat-value">${s.cost}</span></div>`;
+              stats += '</div>';
+            }
+            if (s.notes) stats += `<div class="inventory-notes">${s.notes}</div>`;
+          }
+
+          card.innerHTML = `
+            <div class="inventory-title">${item.gear}</div>
+            ${stats}
+            <div class="inventory-timestamp">ACQUIRED: ${new Date(item.timestamp).toLocaleString()}</div>
+          `;
+          container.appendChild(card);
+        });
+      });
+    }
+
+    // Add an approved item to the player's inventory
+    async function addToInventory(callsign, item) {
+      const invRef = ref(db, `users/${callsign}/inventory`);
+      const snap = await get(invRef);
+      const current = snap.val() || [];
+      current.push(item);
+      set(invRef, current);
+    }
+
+    // ←←←← MODIFY THESE 3 EXISTING PLACES (I marked them with ←←←←) ←←←←
+
+    // 1. Inside the login success block — add one line:
+    // find this part (around line 180-200 in your file):
+    //     loadObjectives();
+    // → add right after it:
+    loadInventory(callsign);
+
+    // 2. Inside the logout button — add one line:
+    // find this line:
+    //     document.getElementById('objectivesSection').style.display = 'none';
+    // → add right after it:
+    document.getElementById('inventorySection').style.display = 'none';
+
+    // 3. Inside the big approval listener (the one that deducts funds) — add 4 lines:
+    // find this block (near the bottom):
+    //         if (request.status === 'approved' && request.callsign === currentUser) {
+    //           const cost = request.gearCost || 0;
+    //           if (cost > 0) {
+    //             currentFunds -= cost;
+    //             saveUserFunds(currentUser, currentFunds);
+    //             updateFundsDisplay();
+    //           }
+    //           playSuccess();
+    // → replace the playSuccess(); line and add these 4 lines instead:
+                  playSuccess();
+                  speak(`Item delivered. ${request.gear} added to your personal inventory.`);
+                  const newItem = {
+                    gear: request.gear,
+                    gearStats: request.gearStats || null,
+                    timestamp: request.timestamp
+                  };
+                  addToInventory(currentUser, newItem);
+
+    // ←←←← THAT'S ALL! ←←←←
+  </script>
+  <!-- ==== END OF NEW INVENTORY CODE ==== -->
+
 </body>
 </html>
