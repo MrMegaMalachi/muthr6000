@@ -873,24 +873,27 @@ async function uploadImageFree(file) {
         statsHTML += '</div>';
       }
       
-      let notesHTML = '';
-      if (notes) {
-        notesHTML = `<div class="gear-notes">${notes}</div>`;
-      }
-      
-      div.innerHTML = `
-        <div class="gear-item-header">
-          <div class="gear-item-name">${name}</div>
-        </div>
-        ${statsHTML}
-        ${notesHTML}
-        <div class="gear-controls">
-          <button class="btn-small btn-up" data-index="${index}">▲</button>
-          <button class="btn-small btn-down" data-index="${index}">▼</button>
-          <button class="btn-small btn-edit" data-index="${index}">EDIT</button>
-          <button class="btn-small btn-delete" data-index="${index}">DELETE</button>
-        </div>
-      `;
+             let imageHTML = '';
+        if (isObject && item.imageUrl) {
+          imageHTML = `<div style="margin:20px 0; text-align:center;">
+                         <img src="${item.imageUrl}" style="max-width:100%; max-height:320px; border:3px solid #00ff00; box-shadow:0 0 25px #00ff00; border-radius:8px;">
+                       </div>`;
+        }
+
+        div.innerHTML = `
+          <div class="gear-item-header">
+            <div class="gear-item-name">${name}</div>
+          </div>
+          ${imageHTML}
+          ${statsHTML}
+          ${notesHTML}
+          <div class="gear-controls">
+            <button class="btn-small btn-up" data-index="${index}">Up</button>
+            <button class="btn-small btn-down" data-index="${index}">Down</button>
+            <button class="btn-small btn-edit" data-index="${index}">EDIT</button>
+            <button class="btn-small btn-delete" data-index="${index}">DELETE</button>
+          </div>
+        `;
       gearListContainer.appendChild(div);
     });
 
