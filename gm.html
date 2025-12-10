@@ -932,7 +932,7 @@ async function uploadImageFree(file) {
     document.querySelectorAll('.btn-delete').forEach(btn => {
       btn.addEventListener('click', () => deleteGear(parseInt(btn.dataset.index)));
     });
-  }
+  
 
   // Listen for gear updates
   onValue(ref(db, 'gear'), (snapshot) => {
