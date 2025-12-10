@@ -746,7 +746,6 @@ textarea.form-input {
   </div>
 </div>
 
-<!-- Edit Modal -->
 <div class="modal" id="editModal">
   <div class="modal-content">
     <div class="modal-header">EDIT EQUIPMENT</div>
@@ -919,19 +918,6 @@ async function uploadImageFree(file) {
       btn.addEventListener('click', () => deleteGear(parseInt(btn.dataset.index)));
     });
   }
-    // Add event listeners
-    document.querySelectorAll('.btn-up').forEach(btn => {
-      btn.addEventListener('click', () => moveGear(parseInt(btn.dataset.index), -1));
-    });
-    document.querySelectorAll('.btn-down').forEach(btn => {
-      btn.addEventListener('click', () => moveGear(parseInt(btn.dataset.index), 1));
-    });
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-      btn.addEventListener('click', () => openEditModal(parseInt(btn.dataset.index)));
-    });
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', () => deleteGear(parseInt(btn.dataset.index)));
-    });
   
 
   // Listen for gear updates
