@@ -42,541 +42,717 @@ body::before {
 }
 
 @keyframes scanline {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 100vh; }
+  0% { transform: translateY(0); }
+  100% { transform: translateY(10px); }
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 255, 0, 0.02);
+  pointer-events: none;
+  z-index: 999;
+  animation: flicker 0.15s infinite alternate;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.95; }
+  100% { opacity: 1; }
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.8);
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-  min-height: 98vh;
-  border: 1px solid #00ff00;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 10px #00ff00;
 }
 
 header {
   text-align: center;
   margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #00ff00;
+  padding: 20px;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
 }
 
 h1 {
   font-size: 2.5em;
-  color: #33ff33;
-  text-shadow: 0 0 10px #00ff00;
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin-bottom: 10px;
 }
 
-h2 {
-  font-size: 1.5em;
-  color: #00ff00;
-  border-bottom: 1px dashed #00ff00;
-  padding-bottom: 5px;
-  margin-top: 20px;
-  margin-bottom: 15px;
+.subtitle {
+  font-size: 0.9em;
+  letter-spacing: 4px;
+  opacity: 0.8;
+}
+
+.form-section {
+  background: rgba(0, 255, 0, 0.05);
+  border: 2px solid #00ff00;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
-  margin-top: 10px;
+  margin-bottom: 8px;
   font-size: 0.9em;
+  letter-spacing: 2px;
 }
 
-input[type="text"], 
-input[type="number"],
-textarea,
-select {
+input, select, textarea {
   width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  background: #0a0a0a;
+  background: #000;
   border: 1px solid #00ff00;
-  color: #33ff33;
+  color: #00ff00;
+  padding: 12px;
   font-family: 'Orbitron', monospace;
-  font-size: 0.9em;
-  box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.5);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.btn {
-  background: #004400;
-  color: #00ff00;
-  border: 1px solid #00ff00;
-  padding: 10px 15px;
-  margin-top: 15px;
-  cursor: pointer;
-  font-family: 'Orbitron', monospace;
-  text-transform: uppercase;
-  transition: all 0.1s;
-  box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-}
-
-.btn:hover {
-  background: #00ff00;
-  color: #000;
-  box-shadow: 0 0 15px #00ff00;
-}
-
-.btn:active {
-  background: #008800;
-  box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.8);
-}
-
-.btn-group {
-  display: flex;
-  gap: 10px;
-}
-
-/* Funds Display */
-#fundsDisplay {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 10px 15px;
-  border: 1px solid #00ff00;
-  background: rgba(0, 30, 0, 0.9);
-  z-index: 50;
-  text-align: right;
-  min-width: 180px;
-}
-
-#fundsDisplay div {
-  font-size: 0.8em;
-  color: #00ff00;
-  text-transform: uppercase;
-}
-
-#fundsAmount {
-  font-size: 1.5em;
-  color: #33ff33;
-  text-shadow: 0 0 5px #00ff00;
-}
-
-#fundsDisplay.negative #fundsAmount {
-  color: #ff3333;
-  text-shadow: 0 0 5px #ff0000;
-}
-
-.funds-update-form {
-  margin-top: 10px;
-  display: flex;
-  gap: 5px;
-}
-
-.funds-update-form input {
-  flex-grow: 1;
-}
-
-.funds-update-form .btn {
-  margin-top: 0;
-  padding: 8px 10px;
-}
-
-/* Gear Details */
-#gearDetails {
-  border: 1px dashed #00ff00;
-  padding: 10px;
-  margin-top: 15px;
-  background: rgba(0, 30, 0, 0.5);
-}
-
-#gearDetailsContent {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.gear-detail-item {
-  border: 1px solid rgba(0, 255, 0, 0.3);
-  padding: 5px;
-}
-
-.gear-detail-label {
-  font-size: 0.7em;
-  color: #00ff00;
-  border-bottom: 1px dotted #00ff00;
-  margin-bottom: 3px;
-}
-
-.gear-detail-value {
   font-size: 1em;
-  font-weight: bold;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
-.gear-detail-notes {
-  grid-column: 1 / -1;
-  margin-top: 10px;
-  padding-top: 5px;
-  border-top: 1px dashed #00ff00;
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
 }
 
-.gear-detail-notes-label {
-  font-size: 0.8em;
-  font-weight: bold;
-  margin-bottom: 5px;
+button {
+  width: 100%;
+  background: #000;
+  border: 3px solid #00ff00;
+  color: #00ff00;
+  padding: 18px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2em;
+  font-weight: 700;
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
 }
 
-/* Log and Messages */
-.log-container {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 5px;
-  border: 1px solid #00ff00;
-  margin-bottom: 20px;
+button:hover {
+  background: rgba(0, 255, 0, 0.1);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.8);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.log-section {
+  margin-top: 40px;
+}
+
+.log-header {
+  font-size: 1.3em;
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+  display: flex;
+  align-items: center;
+}
+
+.cursor {
+  display: inline-block;
+  width: 12px;
+  height: 20px;
+  background: #00ff00;
+  margin-left: 10px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 .log-entry {
-  padding: 8px;
-  margin-bottom: 5px;
-  border-left: 3px solid #00ff00;
-  background: rgba(0, 30, 0, 0.3);
+  background: rgba(0, 255, 0, 0.05);
+  border-left: 4px solid #00ff00;
+  padding: 15px;
+  margin-bottom: 15px;
   font-size: 0.9em;
 }
 
 .log-timestamp {
-  font-size: 0.7em;
-  color: #008800;
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-bottom: 5px;
 }
 
 .log-item {
-  margin-top: 3px;
+  font-weight: 700;
+  margin: 5px 0;
 }
 
 .log-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 5px;
-  margin-bottom: 5px;
-  padding: 5px 0;
-  border-top: 1px dotted rgba(0, 255, 0, 0.3);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+  padding: 10px;
+  background: rgba(0, 255, 0, 0.08);
+  border: 1px solid #00ff00;
 }
 
 .log-stat {
-  padding: 2px 5px;
-  border: 1px solid rgba(0, 255, 0, 0.5);
-  font-size: 0.8em;
+  font-size: 0.85em;
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .log-stat-label {
-  color: #008800;
-  margin-right: 5px;
+  opacity: 0.6;
+  font-size: 0.8em;
+  display: block;
+  margin-bottom: 3px;
 }
 
 .log-stat-value {
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .log-notes {
-  font-size: 0.75em;
-  margin-top: 5px;
-  color: #00aa00;
-  padding: 5px;
-  border: 1px dashed rgba(0, 255, 0, 0.2);
-}
-
-
-.status-approved {
-  color: #33ff33;
-  font-weight: bold;
-}
-
-.status-denied {
-  color: #ff3333;
-  font-weight: bold;
-}
-
-.status-pending {
-  color: #ffff33;
-  font-weight: bold;
-}
-
-/* Messages Section */
-#messagesSection {
-  margin-top: 20px;
+  margin: 10px 0;
   padding: 10px;
-  border: 2px solid #ffaa00;
-  background: rgba(30, 10, 0, 0.7);
-  box-shadow: 0 0 15px rgba(255, 170, 0, 0.7);
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 3px solid #ff9900;
+  font-style: italic;
+  font-size: 0.85em;
 }
 
 .message-entry {
-  padding: 8px;
-  margin-bottom: 5px;
-  border-left: 3px solid #ffaa00;
-  background: rgba(30, 10, 0, 0.3);
+  background: rgba(0, 255, 255, 0.1);
+  border: 2px solid #00ffff;
+  border-left: 4px solid #00ffff;
+  padding: 15px;
+  margin-bottom: 15px;
   font-size: 0.9em;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  animation: messageFlash 0.5s;
 }
 
-.message-header {
-  font-weight: bold;
-  color: #ffaa00;
+@keyframes messageFlash {
+  0%, 50% { border-color: #00ffff; background: rgba(0, 255, 255, 0.2); }
+  25%, 75% { border-color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+  100% { border-color: #00ffff; background: rgba(0, 255, 255, 0.1); }
 }
 
 .message-timestamp {
-  font-size: 0.7em;
-  color: #aa5500;
-  margin-bottom: 5px;
+  opacity: 0.6;
+  font-size: 0.85em;
+  margin-bottom: 8px;
+  color: #00ffff;
 }
 
 .message-text {
-  font-style: italic;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #00ffff;
+  text-shadow: 0 0 5px #00ffff;
 }
 
-/* Objectives Section */
-#objectivesSection {
-  margin-top: 20px;
+.message-header {
+  color: #00ffff;
+  font-size: 0.8em;
+  margin-bottom: 5px;
+  opacity: 0.8;
+}
+
+.funds-display {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(0, 255, 0, 0.1);
+  border: 2px solid #00ff00;
+  font-size: 1.3em;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.funds-display.negative {
+  background: rgba(255, 0, 0, 0.1);
+  border-color: #ff0000;
+  color: #ff0000;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+}
+
+#fundsAmount {
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+.funds-display.negative #fundsAmount {
+  color: #ff0000;
+  text-shadow: 0 0 10px #ff0000;
+}
+
+.section-header {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+  color: #ff9900;
+  text-align: center;
+}
+
+.btn-logout {
+  width: 100%;
+  margin-top: 10px;
+  background: #000;
+  border: 2px solid #ff9900;
+  color: #ff9900;
   padding: 10px;
-  border: 2px solid #33ccff;
-  background: rgba(0, 10, 30, 0.7);
-  box-shadow: 0 0 15px rgba(51, 204, 255, 0.7);
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9em;
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 153, 0, 0.2);
+}
+
+.funds-management {
+  background: rgba(255, 153, 0, 0.05);
+  border-color: #ff9900;
+}
+
+.btn-update-funds {
+  width: 100%;
+  background: #000;
+  border: 3px solid #ff9900;
+  color: #ff9900;
+  padding: 15px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1em;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(255, 153, 0, 0.4);
+}
+
+.btn-update-funds:hover {
+  background: rgba(255, 153, 0, 0.1);
+  box-shadow: 0 0 30px rgba(255, 153, 0, 0.8);
+}
+
+.affordability-warning {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 2px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.status-approved {
+  color: #00ff00;
+  text-shadow: 0 0 15px #00ff00;
+}
+
+.status-denied {
+  color: #ff0000;
+  text-shadow: 0 0 15px #ff0000;
+}
+
+/* Style for pending requests in the log */
+.status-pending {
+  color: #ffff00;
+  text-shadow: 0 0 10px #ffff00;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-size: 1.1em;
+  letter-spacing: 3px;
+}
+
+.gear-details {
+  background: rgba(0, 255, 0, 0.08);
+  border: 2px solid #00ff00;
+  padding: 20px;
+  margin: 15px 0;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.gear-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.gear-detail-item {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-left: 3px solid #00ff00;
+}
+
+.gear-detail-label {
+  font-size: 0.75em;
+  opacity: 0.6;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.gear-detail-value {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+.gear-detail-notes {
+  grid-column: 1 / -1;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  border-left: 3px solid #ff9900;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.gear-detail-notes-label {
+  color: #ff9900;
+  font-size: 0.75em;
+  opacity: 0.8;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.objectives-section {
+  background: rgba(255, 0, 255, 0.05);
+  border: 2px solid #ff00ff;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: inset 0 0 20px rgba(255, 0, 255, 0.1);
+}
+
+.objectives-header {
+  font-size: 1.3em;
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+  color: #ff00ff;
+  display: flex;
+  align-items: center;
 }
 
 .objective-card {
-  padding: 8px;
-  margin-bottom: 5px;
-  border-left: 3px solid #33ccff;
-  background: rgba(0, 10, 30, 0.3);
-  font-size: 0.9em;
+  background: rgba(255, 0, 255, 0.1);
+  border: 2px solid #ff00ff;
+  padding: 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+  animation: objectiveFlash 0.5s;
+}
+
+@keyframes objectiveFlash {
+  0%, 50% { border-color: #ff00ff; background: rgba(255, 0, 255, 0.2); }
+  25%, 75% { border-color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+  100% { border-color: #ff00ff; background: rgba(255, 0, 255, 0.1); }
 }
 
 .objective-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .objective-title {
-  font-weight: bold;
-  color: #33ccff;
-  font-size: 1.1em;
+  font-size: 1.2em;
+  font-weight: 700;
+  color: #ff00ff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px #ff00ff;
 }
 
 .objective-priority {
-  font-size: 0.7em;
-  padding: 2px 5px;
-  border-radius: 3px;
-  font-weight: bold;
-  text-transform: uppercase;
+  padding: 5px 15px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border: 2px solid;
 }
 
-.priority-HIGH {
-  background: #ff3333;
-  color: #000;
-}
-
-.priority-MEDIUM {
-  background: #ffff33;
-  color: #000;
-}
-
-.priority-LOW {
-  background: #0088ff;
-  color: #fff;
-}
-
-.objective-desc {
-  margin-top: 5px;
-  margin-bottom: 5px;
-}
-
-.objective-timestamp {
-  font-size: 0.7em;
-  color: #0066aa;
-  text-align: right;
-}
-
-/* Affordability Warning */
-#affordabilityWarning {
-  padding: 10px;
-  margin-top: 15px;
-  border: 2px solid #ff3333;
-  background: rgba(50, 0, 0, 0.8);
-  color: #ff3333;
-  font-weight: bold;
-  text-align: center;
-  box-shadow: 0 0 10px #ff0000;
+.priority-CRITICAL {
+  color: #ff0000;
+  border-color: #ff0000;
+  background: rgba(255, 0, 0, 0.2);
+  text-shadow: 0 0 10px #ff0000;
   animation: pulse 1.5s infinite;
 }
 
-@keyframes pulse {
-  0% { opacity: 0.8; }
-  50% { opacity: 1.0; }
-  100% { opacity: 0.8; }
+.priority-HIGH {
+  color: #ff9900;
+  border-color: #ff9900;
+  background: rgba(255, 153, 0, 0.2);
 }
 
-/* Inventory Section */
-.inventory-container {
-    margin-top: 15px;
-    padding: 10px;
-    border: 1px solid #00ff00;
-    background: rgba(0, 30, 0, 0.5);
-    display: none; /* Initially hidden */
+.priority-MEDIUM {
+  color: #ffff00;
+  border-color: #ffff00;
+  background: rgba(255, 255, 0, 0.2);
+}
+
+.priority-LOW {
+  color: #00ff00;
+  border-color: #00ff00;
+  background: rgba(0, 255, 0, 0.2);
+}
+
+.objective-desc {
+  color: #ff00ff;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.objective-timestamp {
+  font-size: 0.75em;
+  opacity: 0.6;
+  color: #ff00ff;
+}
+
+.no-objectives {
+  text-align: center;
+  padding: 40px;
+  opacity: 0.5;
+  font-size: 1.1em;
+  letter-spacing: 3px;
+  color: #ff00ff;
+}
+
+/* Inventory Styles */
+.inventory-section {
+    margin-top: 40px;
+    padding: 25px;
+    background: rgba(0, 255, 0, 0.05);
+    border: 2px solid #00ff00;
+    box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+.inventory-header {
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    letter-spacing: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #00ff00;
+}
+
+.btn-toggle-inventory {
+    width: auto;
+    padding: 8px 15px;
+    font-size: 0.8em;
+    letter-spacing: 2px;
+    border: 2px solid #00ff00;
+    background: #000;
 }
 
 .inventory-card {
-    border: 1px solid rgba(0, 255, 0, 0.5);
-    padding: 10px;
+    background: rgba(0, 255, 0, 0.15);
+    border-left: 5px solid #00ff00;
+    padding: 15px;
     margin-bottom: 10px;
-    background: rgba(0, 50, 0, 0.3);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    position: relative; /* For button positioning */
 }
 
 .inventory-title {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #33ff33;
+    font-size: 1.1em;
+    font-weight: 700;
+    letter-spacing: 1px;
     margin-bottom: 5px;
-    float: left;
 }
 
 .inventory-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 5px;
-    padding-bottom: 5px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 5px;
+    border-top: 1px solid rgba(0, 255, 0, 0.2);
 }
 
 .inventory-stat {
-    padding: 2px 5px;
-    border: 1px solid rgba(0, 255, 0, 0.5);
     font-size: 0.8em;
-    white-space: nowrap;
+    padding: 3px;
 }
 
 .inventory-stat-label {
-    color: #008800;
-    margin-right: 5px;
-    font-weight: bold;
+    opacity: 0.6;
+    display: block;
 }
 
+/* NEW: Inventory Remove Button Style */
 .btn-remove-inventory {
-    float: right;
-    background: #440000;
-    color: #ff3333;
-    border: 1px solid #ff3333;
+    width: auto;
+    background: #000;
+    border: 1px solid #ff0000;
+    color: #ff0000;
     padding: 5px 10px;
-    cursor: pointer;
-    font-family: 'Orbitron', monospace;
     font-size: 0.7em;
-    text-transform: uppercase;
-    transition: all 0.1s;
-    margin-top: 5px;
+    margin-top: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    float: right; 
+    transition: all 0.3s;
 }
 
 .btn-remove-inventory:hover {
-    background: #ff3333;
-    color: #000;
+    background: rgba(255, 0, 0, 0.2);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
-/* Gear Image Box */
-#gearImageBox {
-    width: 100%;
-    max-height: 250px;
-    overflow: hidden;
-    margin-top: 15px;
-    border: 1px solid #00ff00;
-    background: rgba(0, 30, 0, 0.5);
-    display: none;
-    text-align: center;
-}
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.5em;
+    letter-spacing: 4px;
+  }
+  
+  .subtitle {
+    font-size: 0.7em;
+  }
+  
+  .gear-details-grid {
+    grid-template-columns: 1fr;
+  }
 
-#gearImage {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    object-fit: contain;
+  .objective-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
 </head>
 <body>
 
-<div id="fundsDisplay" style="display: none;">
-    <div>Current Funds:</div>
-    <div id="fundsAmount">0.00</div>
-    <div class="funds-update-form">
-        <input type="number" id="updateFunds" placeholder="Set Funds">
-        <button class="btn" id="updateFundsBtn">Set</button>
-    </div>
-    <button class="btn" id="logoutBtn">LOGOUT</button>
-</div>
-
 <div class="container">
-    <header>
-        <h1>MU/TH/UR 6000</h1>
-        <h3>REQUISITION TERMINAL</h3>
-    </header>
+  <header>
+    <h1>MU/TH/UR 6000</h1>
+    <div class="subtitle">USCSS REQUISITION TERMINAL</div>
+    <div id="fundsDisplay" class="funds-display" style="display: none;">
+      FUNDS AVAILABLE: <span id="fundsAmount">$0</span>
+    </div>
+  </header>
 
-    <section id="loginSection">
-        <h2>⏣ TERMINAL LOGIN</h2>
-        <label for="loginCallsign">CALLSIGN:</label>
-        <input type="text" id="loginCallsign" placeholder="Enter your unique Call-Sign" required>
-        
-        <label for="loginFunds">INITIAL FUNDS (For New Users):</label>
-        <input type="number" id="loginFunds" placeholder="0.00" value="0.00">
-        
-        <button class="btn" id="loginBtn">ACCESS TERMINAL</button>
-    </section>
+  <div id="loginSection" class="form-section">
+    <div class="section-header">PERSONNEL IDENTIFICATION</div>
+    <div class="form-group">
+      <label>MARINE CALLSIGN:</label>
+      <input type="text" id="loginCallsign" placeholder="Enter your callsign...">
+    </div>
+    <div class="form-group">
+      <label>CURRENT FUNDS ($):</label>
+      <input type="number" id="loginFunds" placeholder="Enter your available funds..." min="0" step="0.01">
+      <div style="font-size: 0.75em; opacity: 0.6; margin-top: 5px; letter-spacing: 1px;">
+        Leave at 0 if starting fresh. Update anytime you earn credits.
+      </div>
+    </div>
+    <button id="loginBtn">ACCESS TERMINAL</button>
+  </div>
 
-    <section id="requisitionSection" style="display: none;">
-        <h2>⏣ REQUISITION FORM</h2>
-        
-        <label for="callsign">CALLSIGN:</label>
-        <input type="text" id="callsign" disabled>
+  <div id="requisitionSection" style="display: none;">
+    
+    <div id="inventorySection" class="inventory-section">
+        <div class="inventory-header">
+            逃 CURRENT INVENTORY
+            <button id="toggleInventoryBtn" class="btn-toggle-inventory">TOGGLE VIEW</button>
+        </div>
+        <div id="inventoryContainer" style="display: none;">
+            <div id="noInventoryMsg" style="text-align: center; opacity: 0.5; padding: 20px;">
+                INVENTORY EMPTY. SUBMIT REQUISITIONS.
+            </div>
+        </div>
+    </div>
+    <div id="objectivesSection" class="objectives-section" style="display: none;">
+      <div class="objectives-header">
+        識 MISSION OBJECTIVES<span class="cursor"></span>
+      </div>
+      <div id="objectivesContainer"></div>
+    </div>
 
-        <label for="gear">EQUIPMENT:</label>
+    <div class="form-section">
+      <div class="form-group">
+        <label>MARINE CALLSIGN:</label>
+        <input type="text" id="callsign" placeholder="Enter callsign..." readonly>
+        <button id="logoutBtn" class="btn-logout">CHANGE USER</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-group">
+        <label>EQUIPMENT REQUEST:</label>
         <select id="gear">
-            <option value="">-- SELECT EQUIPMENT --</option>
-            </select>
-        
-        <div id="gearImageBox" style="display: none;">
-            <img id="gearImage" alt="Selected Gear Image">
-        </div>
+          <option value="">Loading gear list...</option>
+        </select>
+      </div>
 
-        <div id="gearDetails" style="display: none;">
-            <h3>[EQUIPMENT SPECS]</h3>
-            <div id="gearDetailsContent">
-                </div>
-        </div>
+   <div id="gearDetails" class="gear-details" style="display: none;">
+  <div class="gear-details-grid" id="gearDetailsContent"></div>
 
-        <div id="affordabilityWarning" style="display: none;">
-            ⚠️ WARNING: INSUFFICIENT FUNDS. REQUEST WILL RESULT IN DEBT IF APPROVED.
-        </div>
-
-        <label for="justification">JUSTIFICATION FOR REQUISITION:</label>
-        <textarea id="justification" placeholder="State operational need clearly."></textarea>
-        
-        <button class="btn" id="submitBtn">TRANSMIT REQUEST</button>
-
-        <h2>⏣ PERSONAL INVENTORY</h2>
-        <button class="btn" id="toggleInventoryBtn">TOGGLE VIEW</button>
-        <div class="inventory-container" id="inventoryContainer" style="display: none;">
-            <div id="noInventoryMsg" style="font-style: italic; color: #00aa00; display: none;">[INVENTORY EMPTY. COMPLETE REQUISITIONS TO ACQUIRE GEAR.]</div>
-            </div>
-
-        <h2>⏣ REQUISITION LOG (Last 20)</h2>
-        <div class="log-container" id="logContainer">
-            </div>
-    </section>
+  <div id="gearImageBox" style="margin:20px 0; text-align:center; display:none;">
+    <img id="gearImage" style="max-width:100%; max-height:450px; border:3px solid #00ff00; box-shadow:0 0 30px #00ff00;">
+  </div>
+</div>
     
-    <section id="messagesSection" style="display: none;">
-        <h2>⏣ INCOMING TRANSMISSIONS</h2>
-        <div id="messagesContainer">
-            </div>
-    </section>
-    
-    <section id="objectivesSection" style="display: none;">
-        <h2>⏣ MISSION OBJECTIVES</h2>
-        <div id="objectivesContainer">
-            </div>
-    </section>
+      <div id="affordabilityWarning" class="affordability-warning" style="display: none;">
+          圷 WARNING: INSUFFICIENT FUNDS. DEBT WILL BE INCURRED UPON APPROVAL. 圷
+      </div>
 
+      <div class="form-group">
+        <label>JUSTIFICATION (OPTIONAL):</label>
+        <textarea id="justification" placeholder="State operational necessity..."></textarea>
+      </div>
+
+      <button id="submitBtn">SUBMIT REQUEST</button>
+    </div>
+
+    <div class="form-section funds-management">
+      <div class="section-header">FUNDS MANAGEMENT</div>
+      <div class="form-group">
+        <label>ADD/UPDATE FUNDS ($):</label>
+        <input type="number" id="updateFunds" placeholder="Enter amount earned..." min="0" step="0.01">
+      </div>
+      <button id="updateFundsBtn" class="btn-update-funds">UPDATE FUNDS</button>
+    </div>
+  </div>
+
+  <div class="log-section">
+    <div class="log-header">
+      TERMINAL LOG<span class="cursor"></span>
+    </div>
+    <div id="logContainer"></div>
+  </div>
+
+  <div id="messagesSection" class="log-section" style="display: none;">
+    <div class="log-header">
+      INCOMING TRANSMISSIONS<span class="cursor"></span>
+    </div>
+    <div id="messagesContainer"></div>
+  </div>
 </div>
 
 <script type="module">
@@ -603,7 +779,7 @@ textarea {
   let selectedGearCost = 0;
   let messagesListenerActive = false;
   let messagesUnsubscribe = null; 
-  let inventoryUnsubscribe = null; // FIX 1/3: Listener tracker for inventory
+  let inventoryUnsubscribe = null; // FIX 1: Listener tracker for inventory
   let voicesLoadedResolve;
   const voicesLoaded = new Promise((resolve) => { voicesLoadedResolve = resolve; });
   
@@ -688,12 +864,16 @@ textarea {
     set(ref(db, `users/${callsign}/funds`), funds);
   }
 
-  // Load and display user inventory
+  // NEW FUNCTION: Load and display user inventory
 function loadInventory(callsign) {
     const container = document.getElementById('inventoryContainer');
     const noInventoryMsg = document.getElementById('noInventoryMsg');
     
-    // FIX 2/3: Set up the listener and store the unsubscribe function
+    // FIX 2: Capture the unsubscribe function to stop the listener on logout
+    if (inventoryUnsubscribe) {
+      inventoryUnsubscribe(); // Unsubscribe the previous user's listener if it somehow wasn't closed
+    }
+    
     inventoryUnsubscribe = onValue(ref(db, `users/${callsign}/inventory`), (snapshot) => {
         const inventory = snapshot.val();
         container.innerHTML = '';
@@ -743,7 +923,7 @@ function loadInventory(callsign) {
     });
 }
 
-// Handles the removal of an item from the player's personal inventory
+// NEW FUNCTION: Handles the removal of an item from the player's personal inventory
 window.removeItemFromInventory = function(requestId) {
     if (!currentUser) {
         speak('ERROR: NO USER LOGGED IN.');
@@ -811,7 +991,7 @@ window.removeItemFromInventory = function(requestId) {
       loadUserFunds(callsign);
       loadMessages(callsign);
       loadObjectives();
-      // Load inventory on login - This correctly sets up a new listener
+      // Load inventory on login
       loadInventory(callsign);
     }, { onlyOnce: true });
   });
@@ -874,7 +1054,7 @@ function loadMessages(callsign) {
       const timestamp = new Date(message.timestamp).toLocaleString();
       
       div.innerHTML = `
-        <div class="message-header">▸ TRANSMISSION FROM MU/TH/UR 6000</div>
+        <div class="message-header">笆ｸ TRANSMISSION FROM MU/TH/UR 6000</div>
         <div class="message-timestamp">${timestamp}</div>
         <div class="message-text">${message.text}</div>
       `;
@@ -960,22 +1140,22 @@ function loadObjectives() {
     });
   });
 }
-// FIX 3/3: Updated Logout
+// Logout
 document.getElementById('logoutBtn').addEventListener('click', () => {
   playSelect();
   
-  // Turn off the message listener
+  // Turn off the message listener (turn off the radio)
   if (messagesUnsubscribe) {
     messagesUnsubscribe();
     messagesUnsubscribe = null;
   }
   
-  // Turn off the inventory listener
+  // FIX 3: Turn off the inventory listener
   if (inventoryUnsubscribe) {
     inventoryUnsubscribe();
     inventoryUnsubscribe = null;
   }
-  
+
   // Reset the flag so we can create a new listener on next login
   messagesListenerActive = false;
   
