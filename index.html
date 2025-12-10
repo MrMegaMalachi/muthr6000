@@ -382,7 +382,7 @@ button:active {
   text-shadow: 0 0 15px #ff0000;
 }
 
-/* NEW: Style for pending requests in the log */
+/* Style for pending requests in the log */
 .status-pending {
   color: #ffff00;
   text-shadow: 0 0 10px #ffff00;
@@ -548,7 +548,7 @@ button:active {
   color: #ff00ff;
 }
 
-/* NEW: Inventory Styles */
+/* Inventory Styles */
 .inventory-section {
     margin-top: 40px;
     padding: 25px;
@@ -582,6 +582,7 @@ button:active {
     padding: 15px;
     margin-bottom: 10px;
     box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    position: relative; /* For button positioning */
 }
 
 .inventory-title {
@@ -608,6 +609,26 @@ button:active {
 .inventory-stat-label {
     opacity: 0.6;
     display: block;
+}
+
+/* NEW: Inventory Remove Button Style */
+.btn-remove-inventory {
+    width: auto;
+    background: #000;
+    border: 1px solid #ff0000;
+    color: #ff0000;
+    padding: 5px 10px;
+    font-size: 0.7em;
+    margin-top: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    float: right; 
+    transition: all 0.3s;
+}
+
+.btn-remove-inventory:hover {
+    background: rgba(255, 0, 0, 0.2);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
 @media (max-width: 600px) {
@@ -741,7 +762,7 @@ button:active {
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
+  import { getDatabase, ref, push, onValue, set, update, onChildAdded, off, remove } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js';
 
   // Your Firebase configuration
   const firebaseConfig = {
@@ -863,10 +884,13 @@ function loadInventory(callsign) {
 
         noInventoryMsg.style.display = 'none';
         
-        // Sort inventory by approval timestamp (if available) to show newest first
-        const sortedInventory = Object.values(inventory).sort((a, b) => b.approvedTimestamp - a.approvedTimestamp);
+        // Use Object.entries to get the Firebase key (requestId) and the item data
+        const inventoryEntries = Object.entries(inventory);
+        
+        // Sort by timestamp (newest first)
+        const sortedInventory = inventoryEntries.sort(([, a], [, b]) => b.approvedTimestamp - a.approvedTimestamp);
 
-        sortedInventory.forEach(item => {
+        sortedInventory.forEach(([requestId, item]) => { // Now we have the requestId and the item data
             const div = document.createElement('div');
             div.className = 'inventory-card';
             
@@ -889,12 +913,41 @@ function loadInventory(callsign) {
             div.innerHTML = `
                 <div class="inventory-title">${item.gear}</div>
                 ${statsHTML}
+                <button class="btn-remove-inventory" onclick="removeItemFromInventory('${requestId}')">JETTISON ITEM</button>
+                <div style="clear: both;"></div>
             `;
             
             container.appendChild(div);
         });
     });
 }
+
+// NEW FUNCTION: Handles the removal of an item from the player's personal inventory
+window.removeItemFromInventory = function(requestId) {
+    if (!currentUser) {
+        speak('ERROR: NO USER LOGGED IN.');
+        playError();
+        return;
+    }
+    
+    if (!confirm("CONFIRM: Are you sure you want to jettison this item from your inventory? This cannot be undone.")) {
+        playSelect();
+        return;
+    }
+    
+    // Use Firebase remove() function targeting the specific path in the user's inventory
+    remove(ref(db, `users/${currentUser}/inventory/${requestId}`))
+        .then(() => {
+            playSuccess();
+            speak('INVENTORY ITEM REMOVED. ITEM JETTISONED.');
+        })
+        .catch((error) => {
+            playError();
+            speak('ERROR REMOVING ITEM FROM INVENTORY.');
+            console.error("Firebase removal error:", error);
+        });
+}
+
 
   // Login
   document.getElementById('loginBtn').addEventListener('click', () => {
@@ -937,12 +990,12 @@ function loadInventory(callsign) {
       loadUserFunds(callsign);
       loadMessages(callsign);
       loadObjectives();
-      // NEW: Load inventory on login
+      // Load inventory on login
       loadInventory(callsign);
     }, { onlyOnce: true });
   });
 
-  // NEW: Inventory Toggle Button
+  // Inventory Toggle Button
 document.getElementById('toggleInventoryBtn').addEventListener('click', () => {
     playSelect();
     const container = document.getElementById('inventoryContainer');
@@ -1323,7 +1376,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
     const requests = snapshot.val();
     if (!requests) return;
 
-    // MODIFIED: Filter logic to show all non-pending requests AND current user's pending requests
+    // Filter logic to show all non-pending requests AND current user's pending requests
     const entries = Object.entries(requests)
       .map(([id, r]) => ({id, ...r}))
       .filter(r => 
@@ -1339,7 +1392,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
       
       const timestamp = new Date(entry.timestamp).toLocaleString();
       
-      // MODIFIED: Added logic for 'pending' status display
+      // Added logic for 'pending' status display
       const statusClass = entry.status === 'approved' 
         ? 'status-approved' 
         : entry.status === 'denied' 
@@ -1435,7 +1488,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
             updateFundsDisplay();
           }
 
-          // 2. ADD TO INVENTORY (The core user request)
+          // 2. ADD TO INVENTORY 
           if (request.gearStats) {
               set(ref(db, `users/${currentUser}/inventory/${id}`), {
                   gear: request.gear,
